@@ -1,0 +1,1 @@
+FUNForth seed 0.1 ok>

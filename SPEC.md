@@ -205,13 +205,22 @@ carries raspi0/raspi1ap/raspi2b only). Canonical commands are in Appendix A. If 
 local QEMU build cannot enter AArch32 on raspi3ap, 3A+/SMP acceptance is
 hardware-only and marked as such per milestone.
 
+### Delta D3: QEMU loads a raw `-kernel` image at 0x10000 on raspi models
+
+Verified on QEMU 10.0 (`-M raspi0`): a raw `kernel.img` passed via `-kernel` is
+loaded at 0x10000, not 0x8000, so a 0x8000-linked raw image executes at the wrong
+address. The harness therefore boots **`kernel.elf`** (ELF program headers are
+honored, entry 0x8000). Real hardware still boots the raw `kernel.img` at 0x8000
+via the GPU firmware. `make run` / `make test` use `kernel.elf`; `kernel.img`
+remains the SD-card artifact.
+
 ## 12. Milestones v2.0 (phased, each one branch = one PR)
 
 Tracking table (check off in the PR that completes the milestone):
 
 | # | Milestone | Phase | Depends on | Automated acceptance |
 | --- | --- | --- | --- | --- |
-| [ ] M0 | Build scaffolding + UART boot banner | A | - | `make test` M0 transcript |
+| [x] M0 | Build scaffolding + UART boot banner | A | - | `make test` M0 transcript |
 | [ ] M1 | Seed machine setup + IO-BASE + seed REPL | A | M0 | `make test` M1 |
 | [ ] M2 | Seed stack/arith/memory word set | A | M1 | `make test` t-core part 1 |
 | [ ] M3 | Branch words + embedded core + compiler (`:` `;`) | A | M2 | greet/sq transcript |
@@ -246,8 +255,9 @@ Per-milestone definition (artifacts / behavior / acceptance):
   card; not committed), `src/seed.S` with reset vector, SYS mode, IRQ/FIQ off,
   .bss zero, PL011 init + `EMIT-EARLY`, banner `FUNForth seed 0.1 ok> `, and a spin
   loop. `tools/qemu-ctl.py` harness. Acceptance: `make test` boots
-  `qemu-system-arm -M raspi0 -kernel kernel.img -serial stdio -display none`, feeds
-  an empty script, transcript matches `test/expected.txt` (banner line only).
+  `qemu-system-arm -M raspi0 -kernel kernel.elf -serial stdio -display none`
+  (Delta D3), feeds an empty script, transcript matches `test/expected.txt`
+  (banner line only).
 - **M1 Seed machine setup + REPL.** Artifacts: ATAGS walk, SoC detect, `hal-2835.S` /
   `hal-2837.S`, words `io-base latest here cold warm`; a minimal seed REPL over UART
   that parses a number (push) or finds a seed word (execute). Acceptance:
@@ -372,10 +382,10 @@ arm-none-eabi-objcopy -O binary kernel.elf kernel.img
 QEMU baseline (QEMU >= 8; machine names per Delta D2):
 
 ```
-# Zero path (primary):
-qemu-system-arm -M raspi0 -kernel kernel.img -serial stdio -display none
+# Zero path (primary; kernel.elf per Delta D3):
+qemu-system-arm -M raspi0 -kernel kernel.elf -serial stdio -display none
 # 3A+ path (if the local build enters AArch32 for a 32-bit kernel; else hardware):
-qemu-system-aarch64 -M raspi3ap -kernel kernel.img -serial stdio -display none -cpu cortex-a53
+qemu-system-aarch64 -M raspi3ap -kernel kernel.elf -serial stdio -display none -cpu cortex-a53
 ```
 
 `make test` mechanics: `tools/qemu-ctl.py` starts QEMU with `-serial stdio` (pipes
