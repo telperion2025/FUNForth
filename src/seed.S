@@ -160,16 +160,18 @@ emit_char:
     str     r3, [r1]
     bx      lr
 
-@ print_str ( r0 = asciz -- )
+@ print_str ( r0 = asciz -- ) : via console vector (emit_vec clobbers r0-r3,r10-r12)
     .global print_str
 print_str:
-    push    {lr}
+    push    {r0, lr}
 1:  ldrb    r3, [r0], #1
+    str     r0, [sp]
     cmp     r3, #0
     beq     2f
-    bl      emit_char
+    bl      emit_vec
+    ldr     r0, [sp]
     b       1b
-2:  pop     {pc}
+2:  pop     {r0, pc}
 
 @ key_char ( -- r0 = char ) : blocking PL011 read
     .global key_char
@@ -205,11 +207,13 @@ divmod10:
     .global print_dec
 print_dec:
     push    {lr}
-    mov     r12, r0                     @ value; survives emit_char/divmod10
+    mov     r12, r0                     @ value; survives emit_vec/divmod10
     cmp     r12, #0
     bge     1f
+    push    {r12}
     mov     r3, #0x2D                   @ '-'
-    bl      emit_char
+    bl      emit_vec
+    pop     {r12}
     neg     r12, r12
 1:  ldr     r3, =numbuf + 16
 2:  mov     r0, r12
@@ -225,20 +229,24 @@ print_dec:
     pop     {pc}
     .ltorg
 
-@ print_hex ( r0 -- ) : 8 hex digits; clobbers r0,r3,r12 (+r1,r2 via emit_char)
+@ print_hex ( r0 -- ) : 8 hex digits via console vector (emit_vec clobbers r0-r3,r10-r12)
     .global print_hex
 print_hex:
-    push    {lr}
+    push    {r0, r12, lr}
     mov     r12, #28
+    str     r12, [sp, #4]
 1:  mov     r3, r0, lsr r12
     and     r3, r3, #0xF
     cmp     r3, #10
     addlo   r3, r3, #0x30
     addhs   r3, r3, #0x37
-    bl      emit_char
+    bl      emit_vec
+    ldr     r0, [sp]
+    ldr     r12, [sp, #4]
     subs    r12, r12, #4
+    str     r12, [sp, #4]
     bpl     1b
-    pop     {pc}
+    pop     {r0, r12, pc}
     .ltorg
 
 @ print_base ( r0 = unsigned n, r1 = base -- ) : digits 0-9 A-Z, no trailing space
@@ -731,11 +739,21 @@ itok:
     ldr     r1, =in_ptr
     ldr     r1, [r1]
     sub     r1, r1, r5
-    mov     r12, r1
-5:  ldrb    r3, [r0], #1
-    bl      emit_char
-    subs    r12, r12, #1
-    bne     5b
+    push    {r0, r1}                    @ token ptr/len (emit_vec clobbers r0-r3,r10-r12)
+5:  ldr     r12, [sp, #4]
+    cmp     r12, #0
+    beq     6f
+    ldr     r0, [sp]
+    ldrb    r3, [r0]
+    bl      emit_vec
+    ldr     r0, [sp]
+    add     r0, r0, #1
+    str     r0, [sp]
+    ldr     r12, [sp, #4]
+    sub     r12, r12, #1
+    str     r12, [sp, #4]
+    b       5b
+6:  pop     {r0, r1}
     b       idone
 ifound:
     ldrb    r2, [r0, #8]                @ flags
@@ -1107,6 +1125,27 @@ console_uart_impl:
 defword console_uart, "console-uart"    @ ( -- ) select UART console
 console_uart_code:
     bl      console_uart_impl
+    b       next
+
+defword con_emit_w, "con-emit!"         @ ( xt -- ) set console emit vector
+con_emit_w_code:
+    ldr     r0, [r4], #4
+    ldr     r1, =con_emit
+    str     r0, [r1]
+    b       next
+
+defword con_key_w, "con-key!"           @ ( xt -- ) set console key vector
+con_key_w_code:
+    ldr     r0, [r4], #4
+    ldr     r1, =con_key
+    str     r0, [r1]
+    b       next
+
+defword con_keyq_w, "con-keyq!"         @ ( xt -- ) set console key? vector
+con_keyq_w_code:
+    ldr     r0, [r4], #4
+    ldr     r1, =con_keyq
+    str     r0, [r1]
     b       next
     .ltorg
 

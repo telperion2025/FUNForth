@@ -237,7 +237,7 @@ Tracking table (check off in the PR that completes the milestone):
 | [x] M8 | GPIO `pin-mode pin! pin@ pin-pull led!` | C | M7 | t-drivers gpio (`make test` M8 section) |
 | [x] M9 | Mailbox properties | C | M1 | t-drivers mbox (`make test` M9 section) |
 | [x] M10 | Framebuffer + VDI + font, screendump test | C | M9 | `make test-fb` diff |
-| [ ] M11 | `console-fb` 80x25 grid + cursor blink | C | M10 | `make test-fb` text diff |
+| [x] M11 | `console-fb` 80x25 grid + cursor blink | C | M10 | `make test-fb` text diff |
 | [x] M12 | SD (Arasan SDHCI) + FAT32 RO + `boot.lst`/`load` | C | M4 | `make test-sd` checksum |
 | [ ] M13 | Task ring + PAUSE + `task: spawn wake kill halt tasks` | D | M4 | t-tasks basic |
 | [ ] M14 | 1 kHz tick preemption (`preemptible`) | D | M7, M13 | t-tasks preempt |
@@ -405,10 +405,25 @@ Per-milestone definition (artifacts / behavior / acceptance):
   in `test/expected-fb.txt` (20 pixels: diagonals, rect, invert-rect, fillrect,
   text stroke, blit block). QEMU raspi0: fb-alloc -> 1, 640x400 pitch 640
   addr 1C100000 (vcram_base+1MB). kernel.img stays 14180 B / 16 KB.
-- **M11 console-fb.** Artifacts: 80x25 grid over the 1 bpp fb, 2 Hz cursor blink via
-  M7 timer, `console-fb` vector; same QUERY/accept paths as UART. Acceptance:
-  `make test-fb` screendump contains the `ok>` prompt pixels; scripted keys echo on
-  the fb console.
+- **M11 console-fb.** DONE. Artifacts: seed console-vector setters `con-emit!`
+  `con-key!` `con-keyq!` (set the bss vector cells directly); all seed print paths
+  (`print_str`/`print_hex`/`print_dec` and the INTERPRET `-? token` echo) now go
+  through `emit_vec`, so prompt `ok> `, ` ok`, numbers and errors follow the
+  console vector (they previously hardwired `emit_char`). `drivers/console-fb.fth`
+  (SD, as CON-FB.FTH): 80x25 grid of 8x16 cells over a 640x400 fb
+  (`fb-emit`/`fb-newline`/`fb-backspace`/`fb-scroll`, CR = newline, LF dropped,
+  ctrl dropped, wrap at col 80, scroll at row 25), XOR cursor cell with 2 Hz blink
+  via M7 `millis` (`fb-cursor`/`fb-blink`, un-inverted on cursor move via
+  `fb-inv`), `key-fb` = UART keys with blink while polling, `console-fb` = clear +
+  home + `['] fb-emit con-emit!` + `['] key-fb con-key!` (key? stays UART).
+  Acceptance: `make test-fb` runs a second scenario `test/fbcon.fth` (loads
+  fb/font8x16/vdi/con-fb, `640 400 8 fb-alloc`, mirror `fb-out` = fb-emit +
+  emit-uart so the harness can still pace on UART `ok> `) and QMP-screendumps it
+  to `build/fbcon.ppm`, diffed by `tools/fbcheck.py` against 51 magic pixels in
+  `test/expected-fbcon.txt`; the dump shows rows ` ok` / `ok> : greet ." HELLO-FB" ;`
+  / ` ok` / `ok> greet` / `HELLO-FB ok` / `ok> 1 2 + .` / `3 ok` / `ok> `+blinking
+  cursor (row-7 cursor cell deliberately not sampled). `make test`/`test-sd`/
+  `test-fb` all green; kernel.img 14360 B / 16 KB.
 - **M12 SD + FAT32.** DONE. Artifacts: `drivers/sd.fth` (Arasan SDHCI +0x300000:
   SWRST/power/CLKCON from CAPAB, CMD0/CMD8/CMD55/ACMD41/CMD2/CMD3/CMD7/CMD16,
   `sd-read` = CMD17 PIO 512 B via BDATA), FAT32 RO in the same file (BPB, FAT chain,
