@@ -111,3 +111,11 @@ millis dup - .
 0 millis 100 ms millis swap - dup 90 < 0= swap 110 > 0= and . drop
 tick-start 5 ms tick? .
 micros 10 ms micros swap - dup 9000 < 0= swap 100000 > 0= and .
+\ --- M8: GPIO ---
+47 1 pin-mode 47 pin! 47 pin@ .
+47 pin-clr 47 pin@ .
+1 led! 47 pin@ .
+0 led! 47 pin@ .
+47 2 pin-pull
+47 0 pin-pull
+hal-pud-wait .

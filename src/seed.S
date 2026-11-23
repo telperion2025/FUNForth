@@ -75,9 +75,7 @@ is2837:
     ldr     r9, =io_base_2837
     ldr     r9, [r9]
 soc_done:
-    ldr     r0, =board_rev
-    str     r5, [r0]
-    @ zero .bss
+    @ zero .bss (first; board_rev/hal_pud_wait_v live in .bss, so store them after)
     ldr     r0, =__bss_start
     ldr     r1, =__bss_end
     mov     r2, #0
@@ -86,6 +84,18 @@ zb: cmp     r0, r1
     str     r2, [r0], #4
     b       zb
 zb_done:
+    ldr     r0, =board_rev
+    str     r5, [r0]
+    ldr     r0, =hal_pud_wait_v
+    ldr     r1, =hal_pud_wait_2835
+    ldr     r1, [r1]
+    ldr     r2, =io_base_2837
+    ldr     r2, [r2]
+    cmp     r9, r2
+    bne     9f
+    ldr     r1, =hal_pud_wait_2837
+    ldr     r1, [r1]
+9:  str     r1, [r0]
     b       cold_code
     .ltorg
 
@@ -1091,6 +1101,14 @@ io_base_code:
     str     r9, [r4]
     b       next
 
+defword hal_pud_wait, "hal-pud-wait"   @ ( -- n ) GPPUD wait cycles for this SoC
+hal_pud_wait_code:
+    ldr     r0, =hal_pud_wait_v
+    ldr     r0, [r0]
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
 defword latest, "latest"
 latest_code:
     sub     r4, r4, #4
@@ -1128,6 +1146,8 @@ cold_code:
     bl      interpret                    @ embedded forth/core.fth (test build)
     ldr     r0, =timer_fth
     bl      interpret                    @ embedded drivers/timer.fth (M7+)
+    ldr     r0, =gpio_fth
+    bl      interpret                    @ embedded drivers/gpio.fth (M8+)
     b       quit_code
 
 defword warm, "warm"
@@ -2085,6 +2105,11 @@ timer_fth:
     .incbin "drivers/timer.fth"
     .byte   0                           @ NUL-terminate for interpret
 timer_fth_end:
+    .global gpio_fth
+gpio_fth:
+    .incbin "drivers/gpio.fth"
+    .byte   0                           @ NUL-terminate for interpret
+gpio_fth_end:
 
     .section .bss
     .align 2
@@ -2098,6 +2123,8 @@ numbuf:     .space  20
 abort_flag: .space  4
     .global board_rev
 board_rev:  .space  4
+    .global hal_pud_wait_v
+hal_pud_wait_v: .space  4
     .global ps0
 ps0:        .space  4
     .global exec_cell

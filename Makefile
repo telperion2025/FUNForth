@@ -22,7 +22,7 @@ QEMU_PY := python3 tools/qemu-ctl.py
 
 all: kernel.img kernel.elf
 
-kernel.elf: $(OBJ) link.ld forth/core.fth drivers/timer.fth
+kernel.elf: $(OBJ) link.ld forth/core.fth drivers/timer.fth drivers/gpio.fth
 	$(CROSS)gcc $(CFLAGS) $(LDFLAGS) -o $@ $(OBJ)
 
 kernel.img: kernel.elf
@@ -32,7 +32,7 @@ kernel.img: kernel.elf
 	$(CROSS)gcc $(ASFLAGS) -c -o $@ $<
 
 # seed.S .incbin's forth/core.fth and drivers/*.fth: rebuild when they change
-src/seed.o: forth/core.fth drivers/timer.fth
+src/seed.o: forth/core.fth drivers/timer.fth drivers/gpio.fth
 
 # QEMU loads a raw -kernel image at 0x10000 on raspi models, so the harness
 # boots kernel.elf (linked at the architectural 0x8000). Hardware boots the

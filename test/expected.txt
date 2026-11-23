@@ -195,7 +195,7 @@ ok> see greet
 greet: Hello, FUNForth ;
  ok
 ok> see dup
-<code> 00008A9C 3
+<code> 00008AD0 3
  ok
 ok> marker m1
  ok
@@ -216,7 +216,7 @@ ok> forget zz
 ok> zz
 -? zz ok
 ok> words
-tn tl b1 a1 xx t2 tcase3 tcase1 fib tuntil twhile tqdo0 tqdo tploop tloop greet sq tick? tick-start ms millis micros sys-c1 sys-clo sys-cs see cell. words .name align4 endcase endpatch endof of case casecnt ?dup +loop loop leave ?do do patchleaves ldepth lpop lpush leavesp leavebuf repeat while again until begin then else if cfdepth cfpop cfpush cfsp cfbuf 2dup marker forget docol-addr count >name j i unloop (leave) (+loop) (loop) (?do) (do) boot-msg refill abort state ['] ' execute number find postpone ] [ ( tramp (." ." create immediate literal ; : word (0branch) (branch) lit exit move fill c, , allot w! w@ +! c! c@ ! @ negate abs 2/ 2* 1- 1+ max min <> u< > < = 0> 0< 0= rshift lshift invert xor or and u/mod /mod * - rdrop r@ r> >r rot tuck nip quit bye warm cold here latest io-base console-uart err expect accept type space cr key?-uart key? key-uart key emit-uart emit span base h. u. . + depth over swap drop dup 
+tn tl b1 a1 xx t2 tcase3 tcase1 fib tuntil twhile tqdo0 tqdo tploop tloop greet sq led! pin-pull io-wait pin@ pin-clr pin! pin-mode gppud! gpio-mask gpio-pudclk gpio-lev gpio-clr gpio-set gpio-fsel tick? tick-start ms millis micros sys-c1 sys-clo sys-cs see cell. words .name align4 endcase endpatch endof of case casecnt ?dup +loop loop leave ?do do patchleaves ldepth lpop lpush leavesp leavebuf repeat while again until begin then else if cfdepth cfpop cfpush cfsp cfbuf 2dup marker forget docol-addr count >name j i unloop (leave) (+loop) (loop) (?do) (do) boot-msg refill abort state ['] ' execute number find postpone ] [ ( tramp (." ." create immediate literal ; : word (0branch) (branch) lit exit move fill c, , allot w! w@ +! c! c@ ! @ negate abs 2/ 2* 1- 1+ max min <> u< > < = 0> 0< 0= rshift lshift invert xor or and u/mod /mod * - rdrop r@ r> >r rot tuck nip quit bye warm cold here latest hal-pud-wait io-base console-uart err expect accept type space cr key?-uart key? key-uart key emit-uart emit span base h. u. . + depth over swap drop dup 
  ok
 ok> \ --- M7: system timer ---
  ok
@@ -228,4 +228,20 @@ ok> tick-start 5 ms tick? .
 -1 ok
 ok> micros 10 ms micros swap - dup 9000 < 0= swap 100000 > 0= and .
 -1 ok
+ok> \ --- M8: GPIO ---
+ ok
+ok> 47 1 pin-mode 47 pin! 47 pin@ .
+1 ok
+ok> 47 pin-clr 47 pin@ .
+0 ok
+ok> 1 led! 47 pin@ .
+0 ok
+ok> 0 led! 47 pin@ .
+1 ok
+ok> 47 2 pin-pull
+ ok
+ok> 47 0 pin-pull
+ ok
+ok> hal-pud-wait .
+150 ok
 ok> 

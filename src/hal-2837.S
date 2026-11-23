@@ -8,3 +8,6 @@ io_base_2837:
     .global hal_name_2837
 hal_name_2837:
     .asciz  "bcm2837"
+    .global hal_pud_wait_2837
+hal_pud_wait_2837:
+    .word   150                         @ BCM2837 own offsets/protocol - hal handles

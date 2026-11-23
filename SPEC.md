@@ -234,7 +234,7 @@ Tracking table (check off in the PR that completes the milestone):
 | [x] M5 | Control-flow words | B | M4 | `make test` t-core part 3 |
 | [x] M6 | `words` / `see` / `forget` / `marker` | B | M5 | `make test` t-core part 4 |
 | [x] M7 | System timer `micros millis ms tick-start` | C | M4 | t-drivers timer (`make test` M7 section) |
-| [ ] M8 | GPIO `pin-mode pin! pin@ pin-pull led!` | C | M7 | t-drivers gpio |
+| [x] M8 | GPIO `pin-mode pin! pin@ pin-pull led!` | C | M7 | t-drivers gpio (`make test` M8 section) |
 | [ ] M9 | Mailbox properties | C | M1 | t-drivers mbox |
 | [ ] M10 | Framebuffer + VDI + font, screendump test | C | M9 | `make test-fb` diff |
 | [ ] M11 | `console-fb` 80x25 grid + cursor blink | C | M10 | `make test-fb` text diff |
@@ -354,9 +354,21 @@ Per-milestone definition (artifacts / behavior / acceptance):
   `0 millis 100 ms millis swap -` in 90..110 -> `-1 ok`;
   `tick-start 5 ms tick? .` -> `-1 ok`; `micros 10 ms micros swap -` in
   9000..100000 -> `-1 ok`.
-- **M8 GPIO.** Artifacts: `drivers/gpio.fth`: `pin-mode pin! pin@ pin-pull led!`
-  (ACT LED = pin 47), with hal pull-up protocol differences. Acceptance:
-  `47 1 pin-mode 47 pin! 47 pin@ .` -> `1 ok`; hardware: ACT LED blinks.
+- **M8 GPIO.** Artifacts: `drivers/gpio.fth` (embedded via `.incbin` after
+  `drivers/timer.fth`, interpreted at cold) over GPIO at `io-base+0x200000`:
+  helpers `gpio-fsel/set/clr/lev/pudclk` (bank = pin/10 or pin/32, `2 lshift`
+  for the +4 stride), `gpio-mask`, `gppud!`; words `pin-mode` (pin mode --;
+  mode 0=in 1=out; RMW of the 3-bit field), `pin!`, `pin-clr`, `pin@` (pin --
+  0/1 level), `pin-pull` (pin mode --; GPPUD protocol with `hal-pud-wait`
+  cycles around the GPPUDCLK write), `led!` (on --; ACT LED = pin 47, active
+  low). Hal pull-up difference: each hal slab (`src/hal-2835.S`/`hal-2837.S`)
+  exports `hal_pud_wait_<soc>`; boot stores it in `hal_pud_wait_v` (after the
+  .bss clear!) and `hal-pud-wait` exposes it. QEMU raspi0/raspi3ap emulate
+  GPSET/GPCLR/GPLEV. Acceptance (`test/all.fth` golden, `make test`):
+  `47 1 pin-mode 47 pin! 47 pin@ .` -> `1 ok`; `47 pin-clr 47 pin@ .` -> `0 ok`;
+  `1 led! 47 pin@ .` -> `0 ok` (active low); `0 led!` -> `1 ok`;
+  `47 2 pin-pull` / `47 0 pin-pull` no-op cleanly; `hal-pud-wait .` -> `150 ok`;
+  hardware: ACT LED blinks.
 - **M9 Mailbox.** Artifacts: `drivers/mailbox.fth`: `mbox-call` (channel 8,
   16-byte-aligned buffer) + `board-model board-rev mac ram-size temp`. Acceptance on
   QEMU raspi0: `ram-size .` prints the QEMU RAM size (512M => `200000 ok` in hex
