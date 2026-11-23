@@ -1,7 +1,11 @@
-# FUNForth Makefile - builds kernel.img and runs the QEMU test harness.
+# FUNForth Makefile - builds kernel.img, the SD image, and runs the QEMU tests.
 #
 # Toolchain: arm-none-eabi-gcc used as assembler+linker only.
 # QEMU: qemu-system-arm (override with QEMU_SYSTEM_ARM=...).
+#
+# From M12 the kernel embeds only forth/core.fth + drivers/sd.fth (comment-
+# stripped into build/); the timer/GPIO/mailbox drivers live on the SD card
+# (build/sd.img) and are loaded at cold boot via BOOT.LST -> sd-boot.
 
 ifeq ($(shell command -v arm-none-eabi-gcc 2>/dev/null),)
 CROSS := $(HOME)/toolchains/arm-gcc/bin/arm-none-eabi-
@@ -11,18 +15,34 @@ endif
 
 CFLAGS  := -nostdlib -nostartfiles -ffreestanding -mfloat-abi=soft \
            -march=armv6k -O2 -Wall
-# -Wa,-I so .incbin "forth/core.fth" resolves (cpp temp files break relative paths)
+# -Wa,-I so .incbin "build/core.fth" resolves (cpp temp files break relative paths)
 ASFLAGS := $(CFLAGS) -Wa,-I$(CURDIR)
 LDFLAGS := -nostdlib -T link.ld
 
 SRC := src/seed.S src/hal-2835.S src/hal-2837.S
 OBJ := $(SRC:.S=.o)
 
+# comment/whitespace-stripped sources embedded into the kernel via .incbin
+EMBED := build/core.fth build/sd.fth
+
 QEMU_PY := python3 tools/qemu-ctl.py
+
+SD_FILES := BOOT.LST=sd/boot.lst TIMER.FTH=drivers/timer.fth \
+            GPIO.FTH=drivers/gpio.fth MBOX.FTH=drivers/mailbox.fth \
+            HELLO.TXT=sd/hello.txt
 
 all: kernel.img kernel.elf
 
-kernel.elf: $(OBJ) link.ld forth/core.fth drivers/timer.fth drivers/gpio.fth drivers/mailbox.fth
+build:
+	mkdir -p build
+
+build/core.fth: forth/core.fth | build
+	sed 's/\\.*//; s/^[[:space:]]*//; s/[[:space:]]*$$//' $< | sed '/^$$/d' > $@
+
+build/sd.fth: drivers/sd.fth | build
+	sed 's/\\.*//; s/^[[:space:]]*//; s/[[:space:]]*$$//' $< | sed '/^$$/d' > $@
+
+kernel.elf: $(OBJ) link.ld $(EMBED)
 	$(CROSS)gcc $(CFLAGS) $(LDFLAGS) -o $@ $(OBJ)
 
 kernel.img: kernel.elf
@@ -31,22 +51,28 @@ kernel.img: kernel.elf
 %.o: %.S
 	$(CROSS)gcc $(ASFLAGS) -c -o $@ $<
 
-# seed.S .incbin's forth/core.fth and drivers/*.fth: rebuild when they change
-src/seed.o: forth/core.fth drivers/timer.fth drivers/gpio.fth drivers/mailbox.fth
+# seed.S .incbin's the stripped build/*.fth: rebuild when they change
+src/seed.o: $(EMBED)
+
+build/sd.img: tools/mksd.py sd/boot.lst sd/hello.txt drivers/timer.fth drivers/gpio.fth drivers/mailbox.fth | build
+	python3 tools/mksd.py $@ 32 $(SD_FILES)
 
 # QEMU loads a raw -kernel image at 0x10000 on raspi models, so the harness
 # boots kernel.elf (linked at the architectural 0x8000). Hardware boots the
 # raw kernel.img at 0x8000 via the GPU firmware.
-run: kernel.elf
-	$(QEMU_PY) --run --kernel kernel.elf
+run: kernel.elf build/sd.img
+	$(QEMU_PY) --run --kernel kernel.elf --sd build/sd.img
 
-test: kernel.elf
-	$(QEMU_PY) --kernel kernel.elf --script test/all.fth --wait-for "ok> " --expected test/expected.txt
+test: kernel.elf build/sd.img
+	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/all.fth --wait-for "ok> " --expected test/expected.txt
 
-test-fb test-sd: kernel.img
+test-sd: kernel.elf build/sd.img
+	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/sd.fth --wait-for "ok> " --expected test/expected-sd.txt
+
+test-fb: kernel.img
 	@echo "$@ requires a later milestone (see SPEC.md)" && exit 1
 
 clean:
-	rm -f $(OBJ) kernel.elf kernel.img
+	rm -rf build $(OBJ) kernel.elf kernel.img
 
 .PHONY: all run test test-fb test-sd clean

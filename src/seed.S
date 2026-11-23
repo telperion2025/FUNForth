@@ -96,6 +96,9 @@ zb_done:
     ldr     r1, =hal_pud_wait_2837
     ldr     r1, [r1]
 9:  str     r1, [r0]
+    ldr     r0, =inptr_sp               @ bss was just zeroed: init save-stack ptr
+    ldr     r1, =inptr_save
+    str     r1, [r0]
     b       cold_code
     .ltorg
 
@@ -656,9 +659,14 @@ err_impl:
     .global interpret
 interpret:
     push    {lr}
+    ldr     r1, =in_ptr
+    ldr     r2, =inptr_sp
+    ldr     r3, [r2]
+    ldr     r12, [r1]                   @ save caller's cursor (nested interpret)
+    str     r12, [r3], #4
+    str     r3, [r2]
+    str     r0, [r1]                    @ in_ptr = buffer
     mov     r5, r0
-    ldr     r0, =in_ptr
-    str     r5, [r0]
     ldr     r8, =state_v                @ STATE lives in memory so state ! works
     ldr     r8, [r8]
 iloop:
@@ -761,6 +769,13 @@ idonext:
     ldr     r8, [r8]
     b       iloop
 idone:
+    ldr     r2, =inptr_sp
+    ldr     r3, [r2]
+    sub     r3, r3, #4
+    ldr     r12, [r3]
+    str     r3, [r2]
+    ldr     r1, =in_ptr
+    str     r12, [r1]                   @ restore caller's cursor
     pop     {pc}
     .ltorg
 
@@ -1143,14 +1158,16 @@ cold_code:
     ldr     r0, =banner
     bl      print_str
     ldr     r0, =core_fth
-    bl      interpret                    @ embedded forth/core.fth (test build)
-    ldr     r0, =timer_fth
-    bl      interpret                    @ embedded drivers/timer.fth (M7+)
-    ldr     r0, =gpio_fth
-    bl      interpret                    @ embedded drivers/gpio.fth (M8+)
-    ldr     r0, =mbox_fth
-    bl      interpret                    @ embedded drivers/mailbox.fth (M9+)
-    b       quit_code
+    bl      interpret                    @ embedded forth/core.fth
+    ldr     r0, =sd_fth
+    bl      interpret                    @ embedded drivers/sd.fth (M12)
+    ldr     r0, =str_sd_boot             @ mount SD, run BOOT.LST from it
+    mov     r1, #7
+    bl      find
+    cmp     r0, #0
+    beq     1f
+    bl      execute_xt
+1:  b       quit_code
 
 defword warm, "warm"
 warm_code:
@@ -1159,6 +1176,12 @@ warm_code:
 defword bye, "bye"
 bye_code:
     b       bye_code
+
+defword interpret_w, "interpret"        @ ( addr -- ) interpret NUL-terminated string
+interpret_w_code:
+    ldr     r0, [r4], #4
+    bl      interpret
+    b       next
 
 defword quit, "quit"
 quit_code:
@@ -1516,10 +1539,12 @@ w_store_code:
     add     r4, r4, #8
     b       next
 
-defword allot, "allot"                  @ ( n -- ) HERE += n
-allot_code:
+defword allot, "allot"                  @ ( n -- ) HERE += n, keep HERE 4-aligned
+allot_code:                             @ (headers/, assume aligned cells)
     ldr     r0, [r4]
     add     r7, r7, r0
+    add     r7, r7, #3
+    bic     r7, r7, #3
     add     r4, r4, #4
     b       next
 
@@ -1606,6 +1631,8 @@ word_w_code:
 @ latest, set latest; advances HERE past name, aligned. Clobbers r0-r3.
     .global header_create
 header_create:
+    add     r7, r7, #3                  @ keep HERE 4-aligned: headers hold cells
+    bic     r7, r7, #3
     str     r6, [r7]                    @ link = latest
     str     r2, [r7, #4]                @ cfa
     mov     r3, #0
@@ -2099,24 +2126,16 @@ str_err:    .asciz  "-? "
     .align 2
     .global core_fth
 core_fth:
-    .incbin "forth/core.fth"
+    .incbin "build/core.fth"            @ comment-stripped by the Makefile
     .byte   0                           @ NUL-terminate for interpret
 core_fth_end:
-    .global timer_fth
-timer_fth:
-    .incbin "drivers/timer.fth"
+    .global sd_fth
+sd_fth:
+    .incbin "build/sd.fth"
     .byte   0                           @ NUL-terminate for interpret
-timer_fth_end:
-    .global gpio_fth
-gpio_fth:
-    .incbin "drivers/gpio.fth"
-    .byte   0                           @ NUL-terminate for interpret
-gpio_fth_end:
-    .global mbox_fth
-mbox_fth:
-    .incbin "drivers/mailbox.fth"
-    .byte   0                           @ NUL-terminate for interpret
-mbox_fth_end:
+sd_fth_end:
+str_sd_boot:
+    .asciz  "sd-boot"
 
     .section .bss
     .align 2
@@ -2142,6 +2161,9 @@ exec_stack: .space  512               @ 64 entries of (IP, lr) for execute_xt
 exec_idx:   .space  4
     .global in_ptr
 in_ptr:     .space  4
+    .global inptr_sp
+inptr_sp:   .space  4                   @ saved in_ptr stack (init after bss clear)
+inptr_save: .space  64
     .global wordbuf
 wordbuf:    .space  64
     .global con_emit

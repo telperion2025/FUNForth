@@ -2,3 +2,4 @@
 kernel.elf
 kernel.img
 __pycache__/
+build/

@@ -1,0 +1,2 @@
+\ hello.txt - loaded from SD by test/sd.fth
+: hi ." hello-from-sd" ;

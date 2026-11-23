@@ -238,7 +238,7 @@ Tracking table (check off in the PR that completes the milestone):
 | [x] M9 | Mailbox properties | C | M1 | t-drivers mbox (`make test` M9 section) |
 | [ ] M10 | Framebuffer + VDI + font, screendump test | C | M9 | `make test-fb` diff |
 | [ ] M11 | `console-fb` 80x25 grid + cursor blink | C | M10 | `make test-fb` text diff |
-| [ ] M12 | SD (Arasan SDHCI) + FAT32 RO + `boot.lst`/`load` | C | M4 | `make test-sd` checksum |
+| [x] M12 | SD (Arasan SDHCI) + FAT32 RO + `boot.lst`/`load` | C | M4 | `make test-sd` checksum |
 | [ ] M13 | Task ring + PAUSE + `task: spawn wake kill halt tasks` | D | M4 | t-tasks basic |
 | [ ] M14 | 1 kHz tick preemption (`preemptible`) | D | M7, M13 | t-tasks preempt |
 | [ ] M15 | `CODE`/`end-code` assembler core | E | M3 | t-asm double/see/error |
@@ -388,8 +388,8 @@ Per-milestone definition (artifacts / behavior / acceptance):
   `20000000 ok` (512M), `board-rev h.` -> `00920092 ok`, `mac h. h.` ->
   `0400573412005452 ok` (QEMU default 52:54:00:12:34:5x), `temp 0< 0= .` ->
   `-1 ok` (QEMU writes temp at value+16 so buf+20 reads 0). QEMU's board-model
-  tag (65537) is NYI. NOTE: kernel.img is now 15916 B of the 16 KB limit —
-  M10+ drivers/font must move to the SD-loaded image (M12) or be comment-stripped.
+  tag (65537) is NYI. NOTE: at M9 kernel.img was 15916 B of the 16 KB limit;
+  since M12 the timer/GPIO/mailbox drivers load from SD (kernel.img 14180 B / 16 KB).
 - **M10 Framebuffer + VDI.** Artifacts: `drivers/fb.fth` (`fb-alloc` via tags
   0x40001, 640x400 1bpp, `fb-off`), `vdi.fth` (`clip! pixel line rect fillrect
   invert-rect blit text`), embedded `font8x16` + `glyph`. Acceptance: `make test-fb`
@@ -399,11 +399,23 @@ Per-milestone definition (artifacts / behavior / acceptance):
   M7 timer, `console-fb` vector; same QUERY/accept paths as UART. Acceptance:
   `make test-fb` screendump contains the `ok>` prompt pixels; scripted keys echo on
   the fb console.
-- **M12 SD + FAT32.** Artifacts: `drivers/sd.fth` (Arasan SDHCI +0x300000: init
-  CMD0/CMD8/CMD55/ACMD41, `sd-read`), `drivers/fat32.fth` RO (MBR, BPB, root cluster,
-  8.3 names), `boot.lst` + `load`, `tools/mksd.py` builds the FAT32 test image.
-  Acceptance: `make test-sd` boots with `-sd` image, loads a known file, prints its
-  checksum; checksum matches golden in `expected.txt`. SD missing = bare UART prompt.
+- **M12 SD + FAT32.** DONE. Artifacts: `drivers/sd.fth` (Arasan SDHCI +0x300000:
+  SWRST/power/CLKCON from CAPAB, CMD0/CMD8/CMD55/ACMD41/CMD2/CMD3/CMD7/CMD16,
+  `sd-read` = CMD17 PIO 512 B via BDATA), FAT32 RO in the same file (BPB, FAT chain,
+  root-dir 8.3 scan, `fat-find`/`fat-read`/`load-file`/`load`/`file-sum`), cold boot
+  runs `sd-boot` (mount + interpret BOOT.LST from a dedicated `boot-buf`), `sd/boot.lst`
+  loads TIMER/GPIO/MBOX.FTH, `tools/mksd.py` builds the 32 MB FAT32 test image
+  (`build/sd.img`), `make test`/`make test-sd` run QEMU with `--sd build/sd.img`.
+  From M12 the kernel embeds only comment-stripped `build/core.fth` + `build/sd.fth`
+  (Makefile sed rules); timer/GPIO/mailbox drivers live on the SD card. Acceptance
+  (QEMU raspi0): `make test` green (M9 golden, words list extended with sd words),
+  `make test-sd` green: `sd-mount .` -> -1, LBA0 55 AA, `file-sum hello.txt .` ->
+  5653 and `file-sum boot.lst .` -> 3892 (host-computed), `load hello.txt` + `hi`
+  -> hello-from-sd, `load nosuch.txt` -> -? nosuch.txt. No SD card = bare UART
+  prompt (sd-mount fails clean). kernel.img 14180 B / 16 KB (was 15916 B at M9).
+  Seed fixes this milestone: `allot` and `header_create` keep HERE 4-aligned (odd
+  `allot`/`c,` counts corrupted the next header's link -> dictionary cycle);
+  `interpret` saves/restores `in_ptr` on a small bss stack so `load` nests.
 - **M13 Multitasker.** Artifacts: `forth/tasks.fth`: 64-slot ring, 96-byte user areas
   (offsets per v1.0 6), `PAUSE` save/advance/restore, `task: spawn wake kill halt
   tasks yield sleep ( n -- )`. Acceptance: t-tasks basic: two tasks alternate

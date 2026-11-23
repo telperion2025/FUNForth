@@ -5,6 +5,11 @@
 
 \ 2dup  ( a b -- a b a b )
 : 2dup over over ;
+\ 2drop ( a b -- )
+: 2drop drop drop ;
+\ / mod  ( /mod is ( a b -- rem quot ) )
+: / /mod nip ;
+: mod /mod drop ;
 
 \ ---- M5: control-flow stack + control words (SPEC 4.1) ----
 \ cf stack is a separate memory stack: r13 is the Forth return stack (used by

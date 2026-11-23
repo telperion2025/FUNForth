@@ -46,6 +46,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--kernel", required=True)
     ap.add_argument("--machine", default="raspi0")
+    ap.add_argument("--sd", help="SD card image attached to the Arasan SDHCI (+0x300000)")
     ap.add_argument("--script", help="FORTH script piped over the serial console")
     ap.add_argument("--expected", help="golden transcript to diff against")
     ap.add_argument("--run", action="store_true", help="interactive run (stdio passthrough)")
@@ -55,14 +56,15 @@ def main():
     args = ap.parse_args()
 
     cmd, env = find_qemu()
+    sd = ["-sd", args.sd] if args.sd else []
     if args.run:
-        cmd += ["-M", args.machine, "-kernel", args.kernel,
+        cmd += ["-M", args.machine, "-kernel", args.kernel] + sd + [
                 "-serial", "stdio", "-display", "none", "-monitor", "none"]
         os.execvpe(cmd[0], cmd, env or os.environ)
 
     # serial via a unix socket (stdio chardev misbehaves with piped stdin)
     sock_path = os.path.join(tempfile.mkdtemp(prefix="funforth-"), "serial.sock")
-    cmd += ["-M", args.machine, "-kernel", args.kernel,
+    cmd += ["-M", args.machine, "-kernel", args.kernel] + sd + [
             "-serial", "unix:%s,server" % sock_path,
             "-display", "none", "-monitor", "none"]
 

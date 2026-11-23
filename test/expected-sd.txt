@@ -1,0 +1,18 @@
+FUNForth seed 0.1 ok> \ M12 SD/FAT tests: mount, raw sector read, file checksums, load+run from SD
+ ok
+ok> sd-mount .
+-1 ok
+ok> 0 sdbuf sd-read sdbuf 510 + c@ . sdbuf 511 + c@ .
+85170 ok
+ok> file-sum hello.txt .
+5653 ok
+ok> file-sum boot.lst .
+3892 ok
+ok> load hello.txt
+ ok
+ok> hi
+hello-from-sd ok
+ok> load nosuch.txt
+-? nosuch.txt
+ ok
+ok>
