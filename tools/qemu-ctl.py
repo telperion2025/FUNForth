@@ -108,8 +108,18 @@ def main():
         while marker not in out:
             if not pump(0.2) or time.time() - start > args.timeout:
                 break
-    if script:
-        ser.sendall(script)
+        # pace input line-by-line, waiting for each fresh prompt (the PL011
+        # FIFO is only 16 deep; blasting the whole script drops bytes)
+        lines = script.split(b"\n")
+        seen = out.count(marker)
+        for line in lines:
+            if not line:
+                continue
+            while out.count(marker) <= seen:
+                if not pump(0.2) or time.time() - start > args.timeout:
+                    break
+            ser.sendall(line + b"\n")
+            seen += 1
 
     while True:
         if not pump(0.2):

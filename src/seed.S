@@ -43,8 +43,8 @@ atag_walk:
     mov     r3, r3, lsl #2
     add     r2, r2, r3
     b       atag_walk
-1:  sub     r13, r0, #0x1000            @ RS top = top-of-RAM - 4 KB
-    ldr     sp, =0x00700000             @ scratch C stack
+1:  sub     r13, r0, #0x1000            @ r13 = sp = top-of-RAM - 4 KB (shared:
+    @ Forth return stack and asm subroutine stack are the same ARM sp)
     @ SoC detect: probe 2837 mailbox status; data abort or zero -> 2835
     ldr     r0, =abort_flag
     mov     r1, #0
@@ -185,26 +185,25 @@ divmod10:
     mov     r1, r2
     bx      lr
 
-@ print_dec ( r0 = signed -- ) : no trailing space
+@ print_dec ( r0 = signed -- ) : no trailing space; sign emitted directly
     .global print_dec
 print_dec:
     push    {lr}
-    ldr     r3, =numbuf + 16
-    mov     r1, r0
-    cmp     r1, #0
+    mov     r12, r0                     @ value; survives emit_char/divmod10
+    cmp     r12, #0
     bge     1f
-    mov     r2, #0x2D                   @ '-'
-    sub     r3, r3, #1
-    strb    r2, [r3]
-    neg     r1, r1
-1:  mov     r0, r1
+    mov     r3, #0x2D                   @ '-'
+    bl      emit_char
+    neg     r12, r12
+1:  ldr     r3, =numbuf + 16
+2:  mov     r0, r12
     bl      divmod10
     add     r1, r1, #0x30
     sub     r3, r3, #1
     strb    r1, [r3]
-    mov     r1, r0
-    cmp     r1, #0
-    bne     1b
+    mov     r12, r0
+    cmp     r12, #0
+    bne     2b
     mov     r0, r3
     bl      print_str
     pop     {pc}
@@ -222,6 +221,48 @@ print_hex:
     bl      emit_char
     subs    r12, r12, #4
     bpl     1b
+    pop     {pc}
+
+@ udivmod ( r0 = n, r1 = d -- r0 = quot, r1 = rem ) : unsigned, bit-by-bit
+@ (ARMv6 has no udiv). Clobbers r2, r3, r12.
+    .global udivmod
+udivmod:
+    mov     r2, #0                      @ quot
+    mov     r3, #0                      @ rem
+    mov     r12, #32
+1:  lsls    r0, r0, #1
+    adc     r3, r3, r3                  @ rem = rem*2 + carry-out of n
+    cmp     r3, r1
+    subhs   r3, r3, r1
+    adc     r2, r2, r2
+    subs    r12, r12, #1
+    bne     1b
+    mov     r0, r2
+    mov     r1, r3
+    bx      lr
+
+@ sdivmod ( r0 = a, r1 = b -- r0 = quot, r1 = rem ) : signed, trunc toward zero,
+@ rem takes the sign of a. Clobbers r2, r3, r12.
+    .global sdivmod
+sdivmod:
+    push    {lr}
+    mov     r2, #0                      @ asign
+    cmp     r0, #0
+    bge     1f
+    neg     r0, r0
+    mov     r2, #1
+1:  mov     r3, r2                      @ qsign = asign
+    cmp     r1, #0
+    bge     2f
+    neg     r1, r1
+    eor     r3, r3, #1                  @ qsign ^= bsign
+2:  push    {r2, r3}
+    bl      udivmod
+    pop     {r2, r3}
+    cmp     r3, #1
+    rsbeq   r0, r0, #0
+    cmp     r2, #1
+    rsbeq   r1, r1, #0
     pop     {pc}
 
 @ uart_init ( -- ) : PL011 at IO-BASE+0x201000, 115200 8N1 (IBRD=1 FBRD=40)
@@ -299,38 +340,50 @@ query:
     str     r5, [r0]
     pop     {pc}
 
-@ number? ( r0 = token -- r0 = value, r1 = valid )
+@ number_q ( r0 = token, r1 = len -- r0 = value, r1 = 1 valid / 0 invalid )
+@ Valid iff the token is an optional '-' followed by >=1 digits, nothing else.
     .global number_q
 number_q:
     push    {lr}
-    ldrb    r2, [r0]
-    mov     r3, #0                      @ sign
-    cmp     r2, #0x2D                   @ '-'
+    sub     sp, sp, #8
+    str     r0, [sp]                    @ start
+    mov     r3, r1                      @ len
+    mov     r1, #0                      @ sign
+    ldrb    r12, [r0]
+    cmp     r12, #0x2D                  @ '-'
     bne     1f
-    mov     r3, #1
-    add     r0, r0, #1
-1:  mov     r2, #0                      @ acc
-    mov     r1, #0                      @ valid
-2:  ldrb    r12, [r0]
-    cmp     r12, #0x30
-    blo     3f
-    cmp     r12, #0x39
-    bhi     3f
-    sub     r12, r12, #0x30
-    mov     r1, r2, lsl #3
-    add     r1, r1, r2, lsl #1          @ acc*10
-    add     r2, r1, r12
     mov     r1, #1
     add     r0, r0, #1
+1:  str     r1, [sp, #4]                @ sign
+    mov     r2, #0                      @ acc
+2:  ldrb    r1, [r0]
+    cmp     r1, #0x30
+    blo     3f
+    cmp     r1, #0x39
+    bhi     3f
+    sub     r1, r1, #0x30
+    mov     r12, r2, lsl #3
+    add     r12, r12, r2, lsl #1        @ acc*10
+    add     r2, r12, r1
+    add     r0, r0, #1
     b       2b
-3:  cmp     r1, #1
-    bne     4f
-    cmp     r3, #1
+3:  ldr     r12, [sp]
+    sub     r0, r0, r12                 @ consumed chars
+    cmp     r0, r3
+    bne     4f                          @ must consume the whole token
+    ldr     r1, [sp, #4]
+    sub     r0, r0, r1                  @ minus sign is not a digit
+    cmp     r0, #0
+    ble     4f
+    cmp     r1, #1
     rsbeq   r2, r2, #0
     mov     r0, r2
+    mov     r1, #1
+    add     sp, sp, #8
     pop     {pc}
-4:  mov     r1, #0
-    mov     r0, #0
+4:  mov     r0, #0
+    mov     r1, #0
+    add     sp, sp, #8
     pop     {pc}
 
 @ find ( r0 = token, r1 = len -- r0 = xt | 0 ) ; preserves r5, r8.
@@ -364,17 +417,19 @@ find:
     pop     {r5, r8, pc}
 
 @ execute_xt ( r0 = xt -- ) : run a code word via NEXT + trampoline.
-@ The return address is saved on the scratch stack (words clobber lr via bl);
-@ the word ends with `b next`, which lands in tramp_code: pop {pc}.
+@ lr is saved in a memory cell (sp/r13 is shared with the Forth return stack,
+@ so the trampoline must not use it); the word ends with `b next`, which lands
+@ in tramp_code, returning through exec_lr.
     .global execute_xt
 execute_xt:
     ldr     r12, [r0, #4]               @ code address
-    push    {lr}
+    ldr     r11, =exec_lr
+    str     lr, [r11]
     ldr     r10, =exec_cell
     ldr     r11, =tramp_hdr
     str     r11, [r10]
     blx     r12
-    pop     {pc}
+    bx      lr
 
 @ interpret ( -- ) : interpret tib; r5 = cursor, r8 = token end (both preserved
 @ by callees). Unknown word: print "-? <tok>" and abort the line. `\` skips line.
@@ -594,9 +649,404 @@ qloop:
     bl      print_str
     b       qloop
 
+@ ---- M2: remaining stack words -------------------------------------------
+defword nip, "nip"                      @ ( a b -- b )
+nip_code:
+    ldr     r0, [r4]                    @ b (TOS) survives
+    add     r4, r4, #4                  @ drop a's cell
+    str     r0, [r4]
+    b       next
+
+defword tuck, "tuck"                    @ ( a b -- b a b )
+tuck_code:
+    ldr     r0, [r4]                    @ b
+    ldr     r1, [r4, #4]                @ a
+    sub     r4, r4, #4
+    str     r0, [r4]
+    str     r1, [r4, #4]
+    str     r0, [r4, #8]
+    b       next
+
+defword rot, "rot"                      @ ( a b c -- b c a )
+rot_code:
+    ldr     r0, [r4]                    @ c
+    ldr     r1, [r4, #4]                @ b
+    ldr     r2, [r4, #8]                @ a
+    str     r2, [r4]
+    str     r0, [r4, #4]
+    str     r1, [r4, #8]
+    b       next
+
+defword to_r, ">r"                      @ ( x -- ) (RS: -- x)
+to_r_code:
+    ldr     r0, [r4], #4
+    sub     r13, r13, #4
+    str     r0, [r13]
+    b       next
+
+defword from_r, "r>"                    @ ( -- x ) (RS: x --)
+from_r_code:
+    ldr     r0, [r13], #4
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword r_fetch, "r@"                   @ ( -- x ) (RS: x -- x)
+r_fetch_code:
+    ldr     r0, [r13]
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword rdrop, "rdrop"                  @ ( -- ) (RS: x --)
+rdrop_code:
+    add     r13, r13, #4
+    b       next
+
+@ ---- M2: arithmetic / logic -------------------------------------------------
+defword minus, "-"                      @ ( a b -- a-b )
+minus_code:
+    ldr     r0, [r4]
+    ldr     r1, [r4, #4]
+    sub     r0, r1, r0
+    add     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword star, "*"                       @ ( a b -- a*b )
+star_code:
+    ldr     r0, [r4]
+    ldr     r1, [r4, #4]
+    mul     r0, r1, r0
+    add     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword slashmod, "/mod"                @ ( a b -- rem quot )
+slashmod_code:
+    ldr     r0, [r4, #4]                @ a
+    ldr     r1, [r4]                    @ b
+    bl      sdivmod                     @ r0 = quot, r1 = rem
+    str     r1, [r4, #4]                @ rem
+    str     r0, [r4]                    @ quot
+    b       next
+
+defword umod, "u/mod"                   @ ( a b -- rem quot ) unsigned
+umod_code:
+    ldr     r0, [r4, #4]
+    ldr     r1, [r4]
+    bl      udivmod
+    str     r1, [r4, #4]
+    str     r0, [r4]
+    b       next
+
+defword and_w, "and"                    @ ( a b -- a&b )
+and_w_code:
+    ldr     r0, [r4]
+    ldr     r1, [r4, #4]
+    and     r0, r1, r0
+    add     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword or_w, "or"                      @ ( a b -- a|b )
+or_w_code:
+    ldr     r0, [r4]
+    ldr     r1, [r4, #4]
+    orr     r0, r1, r0
+    add     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword xor_w, "xor"                    @ ( a b -- a^b )
+xor_w_code:
+    ldr     r0, [r4]
+    ldr     r1, [r4, #4]
+    eor     r0, r1, r0
+    add     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword invert, "invert"                @ ( a -- ~a )
+invert_code:
+    ldr     r0, [r4]
+    mvn     r0, r0
+    str     r0, [r4]
+    b       next
+
+defword lshift, "lshift"                @ ( u n -- u<<n )
+lshift_code:
+    ldr     r0, [r4]                    @ n
+    ldr     r1, [r4, #4]                @ u
+    mov     r0, r1, lsl r0
+    add     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword rshift, "rshift"                @ ( u n -- u>>n logical )
+rshift_code:
+    ldr     r0, [r4]
+    ldr     r1, [r4, #4]
+    mov     r0, r1, lsr r0
+    add     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword z_eq, "0="                      @ ( a -- flag )
+z_eq_code:
+    ldr     r0, [r4]
+    cmp     r0, #0
+    mov     r0, #0
+    mvneq   r0, #0
+    str     r0, [r4]
+    b       next
+
+defword z_lt, "0<"                      @ ( a -- flag )
+z_lt_code:
+    ldr     r0, [r4]
+    cmp     r0, #0
+    mov     r0, #0
+    mvnlt   r0, #0
+    str     r0, [r4]
+    b       next
+
+defword z_gt, "0>"                      @ ( a -- flag )
+z_gt_code:
+    ldr     r0, [r4]
+    cmp     r0, #0
+    mov     r0, #0
+    mvngt   r0, #0
+    str     r0, [r4]
+    b       next
+
+defword eq, "="                         @ ( a b -- flag )
+eq_code:
+    ldr     r0, [r4]
+    ldr     r1, [r4, #4]
+    cmp     r1, r0
+    mov     r0, #0
+    mvneq   r0, #0
+    add     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword lt, "<"                         @ ( a b -- flag ) a<b
+lt_code:
+    ldr     r0, [r4]
+    ldr     r1, [r4, #4]
+    cmp     r1, r0
+    mov     r0, #0
+    mvnlt   r0, #0
+    add     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword gt, ">"                         @ ( a b -- flag ) a>b
+gt_code:
+    ldr     r0, [r4]
+    ldr     r1, [r4, #4]
+    cmp     r1, r0
+    mov     r0, #0
+    mvngt   r0, #0
+    add     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword u_lt, "u<"                      @ ( a b -- flag ) unsigned a<b
+u_lt_code:
+    ldr     r0, [r4]
+    ldr     r1, [r4, #4]
+    cmp     r1, r0
+    mov     r0, #0
+    mvnlo   r0, #0
+    add     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword ne, "<>"                        @ ( a b -- flag )
+ne_code:
+    ldr     r0, [r4]
+    ldr     r1, [r4, #4]
+    cmp     r1, r0
+    mov     r0, #0
+    mvnne   r0, #0
+    add     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword min, "min"                      @ ( a b -- min )
+min_code:
+    ldr     r0, [r4]
+    ldr     r1, [r4, #4]
+    cmp     r1, r0
+    movlo   r0, r1
+    add     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword max, "max"                      @ ( a b -- max )
+max_code:
+    ldr     r0, [r4]
+    ldr     r1, [r4, #4]
+    cmp     r1, r0
+    movgt   r0, r1
+    add     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword one_plus, "1+"                  @ ( a -- a+1 )
+one_plus_code:
+    ldr     r0, [r4]
+    add     r0, r0, #1
+    str     r0, [r4]
+    b       next
+
+defword one_minus, "1-"                 @ ( a -- a-1 )
+one_minus_code:
+    ldr     r0, [r4]
+    sub     r0, r0, #1
+    str     r0, [r4]
+    b       next
+
+defword two_star, "2*"                  @ ( a -- a*2 )
+two_star_code:
+    ldr     r0, [r4]
+    add     r0, r0, r0
+    str     r0, [r4]
+    b       next
+
+defword two_slash, "2/"                 @ ( a -- a/2 arithmetic )
+two_slash_code:
+    ldr     r0, [r4]
+    asr     r0, r0, #1
+    str     r0, [r4]
+    b       next
+
+defword abs_w, "abs"                    @ ( a -- |a| )
+abs_w_code:
+    ldr     r0, [r4]
+    cmp     r0, #0
+    rsblt   r0, r0, #0
+    str     r0, [r4]
+    b       next
+
+defword negate, "negate"                @ ( a -- -a )
+negate_code:
+    ldr     r0, [r4]
+    rsb     r0, r0, #0
+    str     r0, [r4]
+    b       next
+
+@ ---- M2: memory words -------------------------------------------------------
+defword fetch, "@"                      @ ( a -- x )
+fetch_code:
+    ldr     r0, [r4]
+    ldr     r0, [r0]
+    str     r0, [r4]
+    b       next
+
+defword store, "!"                      @ ( x a -- )
+store_code:
+    ldr     r0, [r4]                    @ a
+    ldr     r1, [r4, #4]                @ x
+    str     r1, [r0]
+    add     r4, r4, #8
+    b       next
+
+defword c_fetch, "c@"                   @ ( a -- c )
+c_fetch_code:
+    ldr     r0, [r4]
+    ldrb    r0, [r0]
+    str     r0, [r4]
+    b       next
+
+defword c_store, "c!"                   @ ( c a -- )
+c_store_code:
+    ldr     r0, [r4]                    @ a
+    ldr     r1, [r4, #4]                @ c
+    strb    r1, [r0]
+    add     r4, r4, #8
+    b       next
+
+defword plus_store, "+!"                @ ( x a -- ) a += x
+plus_store_code:
+    ldr     r0, [r4]                    @ a
+    ldr     r1, [r4, #4]                @ x
+    ldr     r2, [r0]
+    add     r2, r2, r1
+    str     r2, [r0]
+    add     r4, r4, #8
+    b       next
+
+defword w_fetch, "w@"                   @ ( a -- w ) halfword
+w_fetch_code:
+    ldr     r0, [r4]
+    ldrh    r0, [r0]
+    str     r0, [r4]
+    b       next
+
+defword w_store, "w!"                   @ ( w a -- ) halfword
+w_store_code:
+    ldr     r0, [r4]
+    ldr     r1, [r4, #4]
+    strh    r1, [r0]
+    add     r4, r4, #8
+    b       next
+
+defword allot, "allot"                  @ ( n -- ) HERE += n
+allot_code:
+    ldr     r0, [r4]
+    add     r7, r7, r0
+    add     r4, r4, #4
+    b       next
+
+defword comma, ","                      @ ( x -- ) align HERE, store cell
+comma_code:
+    ldr     r0, [r4]
+    add     r7, r7, #3
+    bic     r7, r7, #3
+    str     r0, [r7], #4
+    add     r4, r4, #4
+    b       next
+
+defword c_comma, "c,"                   @ ( c -- ) store byte
+c_comma_code:
+    ldr     r0, [r4]
+    strb    r0, [r7], #1
+    add     r4, r4, #4
+    b       next
+
+defword fill, "fill"                    @ ( a n c -- ) fill n bytes at a with c
+fill_code:
+    ldr     r0, [r4]                    @ c
+    ldr     r1, [r4, #4]                @ n
+    ldr     r2, [r4, #8]                @ a
+1:  cmp     r1, #0
+    beq     2f
+    strb    r0, [r2], #1
+    sub     r1, r1, #1
+    b       1b
+2:  add     r4, r4, #12
+    b       next
+
+defword move, "move"                    @ ( src dst n -- ) byte move
+move_code:
+    ldr     r0, [r4]                    @ n
+    ldr     r1, [r4, #4]                @ dst
+    ldr     r2, [r4, #8]                @ src
+1:  cmp     r0, #0
+    beq     2f
+    ldrb    r3, [r2], #1
+    strb    r3, [r1], #1
+    sub     r0, r0, #1
+    b       1b
+2:  add     r4, r4, #12
+    b       next
+
 defword tramp, "tramp"
 tramp_code:
-    pop     {pc}
+    ldr     r12, =exec_lr
+    ldr     pc, [r12]
 
     .set    seed_latest, last_hdr
     .global seed_latest
@@ -624,3 +1074,5 @@ board_rev:  .space  4
 ps0:        .space  4
     .global exec_cell
 exec_cell:  .space  4
+    .global exec_lr
+exec_lr:    .space  4

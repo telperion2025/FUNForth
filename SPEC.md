@@ -228,7 +228,7 @@ Tracking table (check off in the PR that completes the milestone):
 | --- | --- | --- | --- | --- |
 | [x] M0 | Build scaffolding + UART boot banner | A | - | `make test` M0 transcript |
 | [x] M1 | Seed machine setup + IO-BASE + seed REPL | A | M0 | `make test` M1 |
-| [ ] M2 | Seed stack/arith/memory word set | A | M1 | `make test` t-core part 1 |
+| [x] M2 | Seed stack/arith/memory word set | A | M1 | `make test` t-core part 1 |
 | [ ] M3 | Branch words + embedded core + compiler (`:` `;`) | A | M2 | greet/sq transcript |
 | [ ] M4 | QUIT/QUERY console discipline + console words | B | M3 | `make test` t-core part 2 |
 | [ ] M5 | Control-flow words | B | M4 | `make test` t-core part 3 |
@@ -272,8 +272,10 @@ Per-milestone definition (artifacts / behavior / acceptance):
   `io-base h.` prints `20000000 ok` on raspi0; `1 2 + depth .` prints `1 ok`;
   `foobar` prints `-? foobar ok`.
 - **M2 Seed word set.** Artifacts: all stack/arith/logic/memory words of 3.4.
-  Acceptance: `test/t-core.fth` part 1 golden, e.g. `2 3 + .` -> `5 ok`,
-  `10 3 /mod . .` -> `3 1 ok`, `here @ .` runs, `42 here ! here @ .` -> `42 ok`.
+  Acceptance (`test/all.fth` golden, `make test`), e.g. `2 3 + .` -> `5 ok`,
+  `10 3 /mod . .` -> `31 ok` (quot 3, rem 1; `.` prints no trailing space and the
+  line suffix is ` ok`), `42 here ! here @ .` -> `42 ok`, `-10 3 /mod . .` ->
+  `-3-1 ok`, `1 2 3 rot . . .` -> `132 ok`.
 - **M3 Compiler bootstrap.** Artifacts: `(branch) (0branch) EXIT`, embedded core
   string in seed interpreted at `cold`, FORTH-written `: ; LITERAL IMMEDIATE CREATE
   ."`. Acceptance: `: sq dup * ; 7 sq .` -> `49 ok`; `: greet ." Hello, FUNForth" ;
@@ -397,8 +399,16 @@ qemu-system-arm -M raspi0 -kernel kernel.elf -serial stdio -display none
 qemu-system-aarch64 -M raspi3ap -kernel kernel.elf -serial stdio -display none -cpu cortex-a53
 ```
 
-`make test` mechanics: `tools/qemu-ctl.py` starts QEMU with `-serial stdio` (pipes
-`test/all.fth` on stdin), captures the transcript until the `TESTS-DONE` marker (or a
-timeout), terminates QEMU, and diffs against `test/expected.txt`. `make test-fb` adds
+`make test` mechanics: `tools/qemu-ctl.py` starts QEMU with the serial on a unix
+socket (`-serial unix:...,server`, wait=on so no boot output is lost; `-serial
+stdio` drops output when stdin is a pipe), paces `test/all.fth` line-by-line waiting
+for each `ok> ` prompt (the PL011 FIFO is 16 deep — blasting the script drops
+bytes), captures the transcript until idle/timeout, terminates QEMU, and diffs
+against `test/expected.txt` (trailing whitespace stripped). `make test-fb` adds
 a QMP socket and issues `screendump` for pixel diffs; `make test-sd` adds `-sd` with
 the image built by `tools/mksd.py`.
+
+Note: on ARM, r13 **is** sp — the Forth return stack and the asm subroutine stack
+share it (spec 3.2's r13 = RS). `EXECUTE`'s trampoline therefore saves lr in a
+memory cell (`exec_lr`), not on the stack, so `>r`/`r>` inside a word cannot corrupt
+it. Forth code must keep the RS balanced within a word (as usual).

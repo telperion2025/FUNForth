@@ -1,7 +1,45 @@
 FUNForth seed 0.1 ok> io-base h.
 20000000 ok
-ok> 1 2 + depth .
+ok> 1 2 + depth . drop
 1 ok
 ok> foobar
 -? foobar ok
+ok> 2 3 + .
+5 ok
+ok> 10 3 /mod . .
+31 ok
+ok> 42 here ! here @ .
+42 ok
+ok> -10 3 /mod . .
+-3-1 ok
+ok> 5 0< . -3 0< . 0 0= .
+0-1-1 ok
+ok> 7 3 < . 3 7 < . 3 3 = . 3 4 <> .
+0-1-1-1 ok
+ok> -1 1 u< .
+0 ok
+ok> 5 3 min . 5 3 max .
+35 ok
+ok> 7 1+ . 7 1- . 5 2* . 7 2/ . -7 2/ .
+86103-4 ok
+ok> -5 abs . 5 negate .
+5-5 ok
+ok> 12 10 and . 12 10 or . 12 10 xor . 0 invert h.
+8146FFFFFFFF ok
+ok> 1 4 lshift . 256 4 rshift .
+1616 ok
+ok> 1 2 nip .
+2 ok
+ok> 1 2 3 rot . . .
+132 ok
+ok> 5 >r r@ . rdrop depth .
+50 ok
+ok> 65 here c! here c@ .
+65 ok
+ok> 999 here w! here w@ .
+999 ok
+ok> here 100 + 7 over +! here 100 + @ .
+7 ok
+ok> here 3 65 fill here c@ . here 2 + c@ .
+6565 ok
 ok>
