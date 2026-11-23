@@ -25,3 +25,17 @@ here 3 65 fill here c@ . here 2 + c@ .
 : greet ." Hello, FUNForth" ;
 greet
 1 2 2dup . . . .
+foobar
+40 2 + .
+[A
+65 emit
+1 . space 2 .
+key? .
+16 base ! 255 .
+255 u.
+2 base ! 5 .
+10 base !
+-1 u.
+here 8 allot here 8 - 5 72 fill here 8 - 5 type
+span @ .
+console-uart

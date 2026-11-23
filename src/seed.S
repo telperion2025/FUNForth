@@ -226,6 +226,32 @@ print_hex:
     subs    r12, r12, #4
     bpl     1b
     pop     {pc}
+    .ltorg
+
+@ print_base ( r0 = unsigned n, r1 = base -- ) : digits 0-9 A-Z, no trailing space
+    .global print_base
+print_base:
+    push    {lr}
+    sub     sp, sp, #8
+    str     r1, [sp]                    @ base
+    ldr     r3, =numbuf + 16
+    str     r3, [sp, #4]                @ digit ptr (grows down from numbuf+16)
+1:  ldr     r1, [sp]
+    bl      udivmod                     @ r0 = quot, r1 = rem (clobbers r2,r3,r12)
+    ldr     r3, [sp, #4]
+    cmp     r1, #10
+    addlo   r1, r1, #0x30
+    addhs   r1, r1, #0x37               @ A-Z
+    sub     r3, r3, #1
+    strb    r1, [r3]
+    str     r3, [sp, #4]
+    cmp     r0, #0
+    bne     1b
+    ldr     r0, [sp, #4]
+    bl      print_str
+    add     sp, sp, #8
+    pop     {pc}
+    .ltorg
 
 @ udivmod ( r0 = n, r1 = d -- r0 = quot, r1 = rem ) : unsigned, bit-by-bit
 @ (ARMv6 has no udiv). Clobbers r2, r3, r12.
@@ -309,38 +335,165 @@ query:
     push    {lr}
     ldr     r12, =tib
     mov     r5, #0                      @ len
-1:  bl      key_char
+    ldr     r0, =hist_view
+    mov     r1, #0xFF
+    str     r1, [r0]                    @ not recalling
+qln:
+    bl      key_vec
+    ldr     r12, =tib                  @ key_vec/execute_xt clobber r12: reload
     cmp     r0, #0x0D
-    beq     2f
+    beq     qdonel
     cmp     r0, #0x0A
-    beq     2f
+    beq     qdonel
     cmp     r0, #0x08
-    beq     3f
+    beq     qbsl
     cmp     r0, #0x7F
-    beq     3f
+    beq     qbsl
+    cmp     r0, #0x1B                   @ ESC: arrow-key history recall
+    beq     qescl
     cmp     r5, #127
-    bhs     1b
+    bhs     qln
     strb    r0, [r12, r5]
     add     r5, r5, #1
     mov     r3, r0
-    bl      emit_char
-    b       1b
-3:  cmp     r5, #0
-    beq     1b
+    bl      emit_vec
+    b       qln
+qbsl:
+    cmp     r5, #0
+    beq     qln
     sub     r5, r5, #1
     mov     r3, #8
-    bl      emit_char
+    bl      emit_vec
     mov     r3, #32
-    bl      emit_char
+    bl      emit_vec
     mov     r3, #8
-    bl      emit_char
-    b       1b
-2:  mov     r3, #13
-    bl      emit_char
+    bl      emit_vec
+    b       qln
+qescl:
+    bl      key_vec
+    cmp     r0, #0x5B                   @ '['
+    bne     qln
+    bl      key_vec
+    cmp     r0, #0x41                   @ 'A' = up (older)
+    beq     qupl
+    cmp     r0, #0x42                   @ 'B' = down (newer)
+    beq     qdownl
+    b       qln
+qupl:
+    ldr     r0, =hist_cnt
+    ldr     r0, [r0]
+    cmp     r0, #0
+    beq     qln
+    ldr     r0, =hist_view
+    ldr     r1, [r0]
+    cmp     r1, #0xFF
+    bne     qup2l
+    ldr     r2, =hist_idx
+    ldr     r2, [r2]
+    add     r1, r2, #7
+    and     r1, r1, #7                  @ most recent = idx-1 mod 8
+    b       qup3l
+qup2l:
+    ldr     r2, =hist_idx
+    ldr     r2, [r2]
+    ldr     r3, =hist_cnt
+    ldr     r3, [r3]
+    sub     r2, r2, r3
+    add     r2, r2, #8
+    and     r2, r2, #7                  @ oldest
+    cmp     r1, r2
+    beq     qredrawl
+    add     r1, r1, #7
+    and     r1, r1, #7
+qup3l:
+    ldr     r0, =hist_view
+    str     r1, [r0]
+    b       qredrawl
+qdownl:
+    ldr     r0, =hist_view
+    ldr     r1, [r0]
+    cmp     r1, #0xFF
+    beq     qln
+    ldr     r2, =hist_idx
+    ldr     r2, [r2]
+    add     r1, r1, #1
+    and     r1, r1, #7
+    cmp     r1, r2
+    mov     r3, #0xFF
+    moveq   r1, r3                      @ past newest: back to fresh line
+    str     r1, [r0]
+qredrawl:
+    cmp     r5, #0
+    beq     qrd2l
+    mov     r3, #8
+    bl      emit_vec
+    mov     r3, #32
+    bl      emit_vec
+    mov     r3, #8
+    bl      emit_vec
+    sub     r5, r5, #1
+    b       qredrawl
+qrd2l:
+    ldr     r0, =hist_view
+    ldr     r1, [r0]
+    cmp     r1, #0xFF
+    beq     qln
+    ldr     r2, =hist
+    mov     r3, #132
+    mul     r3, r1, r3
+    add     r2, r2, r3                  @ src = hist + view*132
+    mov     r5, #0
+qrd3l:
+    ldr     r12, =tib
+    ldr     r0, =hist_view                @ recompute src every iteration:
+    ldr     r1, [r0]                    @ emit_vec clobbers r0-r3, r10-r12
+    ldr     r2, =hist
+    mov     r3, #132
+    mul     r3, r1, r3
+    add     r2, r2, r3
+    ldrb    r0, [r2, r5]
+    cmp     r0, #0
+    beq     qln
+    strb    r0, [r12, r5]
+    add     r5, r5, #1
+    mov     r3, r0
+    bl      emit_vec
+    b       qrd3l
+qdonel:
+    mov     r3, #13
+    bl      emit_vec
     mov     r3, #10
-    bl      emit_char
+    bl      emit_vec
+    ldr     r12, =tib
     mov     r0, #0
     strb    r0, [r12, r5]
+    cmp     r5, #0                      @ store non-empty line in history ring
+    beq     qnstorel
+    ldr     r0, =hist_idx
+    ldr     r1, [r0]
+    ldr     r2, =hist
+    mov     r3, #132
+    mul     r3, r1, r3
+    add     r2, r2, r3                  @ dest = hist + idx*132
+    mov     r3, #0
+qcopyl:
+    ldrb    r0, [r12, r3]
+    strb    r0, [r2, r3]
+    cmp     r0, #0
+    add     r3, r3, #1
+    bne     qcopyl
+    ldr     r0, =hist_idx
+    ldr     r1, [r0]
+    add     r1, r1, #1
+    and     r1, r1, #7
+    str     r1, [r0]
+    ldr     r0, =hist_cnt
+    ldr     r1, [r0]
+    cmp     r1, #8
+    bhs     qnstorel
+    add     r1, r1, #1
+    str     r1, [r0]
+qnstorel:
     ldr     r0, =tib_len
     str     r5, [r0]
     pop     {pc}
@@ -430,9 +583,17 @@ find:
 @ in tramp_code, returning through exec_lr.
     .global execute_xt
 execute_xt:
+    @ save IP+lr on a memory stack (r13 is shared with the Forth return stack,
+    @ so the trampoline state must NOT live on r13); nestable via exec_idx
+    ldr     r12, =exec_idx
+    ldr     r11, [r12]
+    ldr     r3, =exec_stack
+    add     r3, r3, r11, lsl #3
+    str     r10, [r3]                   @ save IP
+    str     lr, [r3, #4]                @ save lr
+    add     r11, r11, #1
+    str     r11, [r12]
     ldr     r12, [r0, #4]               @ code address
-    ldr     r11, =exec_lr
-    str     lr, [r11]
     ldr     r10, =exec_cell
     ldr     r11, =tramp_hdr
     str     r11, [r10]
@@ -441,12 +602,41 @@ execute_xt:
     bx      lr
     .ltorg
 
+@ emit_vec ( r3 = char -- ) : emit via the current console emit vector (on stack)
+    .global emit_vec
+emit_vec:
+    push    {lr}
+    sub     r4, r4, #4
+    str     r3, [r4]
+    ldr     r0, =con_emit
+    ldr     r0, [r0]
+    bl      execute_xt
+    pop     {pc}
+    .ltorg
+
+@ key_vec ( -- r0 = char ) : blocking key via the current console key vector
+    .global key_vec
+key_vec:
+    push    {lr}
+    ldr     r0, =con_key
+    ldr     r0, [r0]
+    bl      execute_xt
+    ldr     r0, [r4], #4
+    pop     {pc}
+    .ltorg
+
 @ interpret ( r0 = buffer -- ) : interpret NUL-terminated buffer. r5 = cursor,
 @ reloaded from in_ptr after each word so that : / ." can advance it. r8 = state
 @ (0 interpreting, 1 compiling) — preserved by callees, set by : and ;.
 @ In compile mode: numbers compile as lit <n>; non-immediate words append their
 @ xt; immediate words execute. Unknown word: print "-? <tok>", reset state, abort.
 @ '\' skips to end of line. \n \r are whitespace.
+@ err_impl : reset compile state after an error (used by INTERPRET and err)
+    .global err_impl
+err_impl:
+    mov     r8, #0
+    bx      lr
+
     .global interpret
 interpret:
     push    {lr}
@@ -508,7 +698,7 @@ itok:
     bl      find
     cmp     r0, #0
     bne     ifound
-    mov     r8, #0                      @ err: reset state
+    bl      err_impl
     ldr     r0, =str_err                @ "-? "
     bl      print_str
     mov     r0, r5
@@ -682,11 +872,27 @@ plus_code:
     str     r0, [r4]
     b       next
 
-defword dot, "."
+defword dot, "."                        @ ( n -- ) signed, in BASE
 dot_code:
-    ldr     r0, [r4]
-    bl      print_dec
-    add     r4, r4, #4
+    ldr     r0, [r4], #4
+    cmp     r0, #0
+    bge     1f
+    push    {r0}
+    mov     r3, #0x2D                   @ '-'
+    bl      emit_vec
+    pop     {r0}
+    neg     r0, r0
+1:  ldr     r1, =base_v
+    ldr     r1, [r1]
+    bl      print_base
+    b       next
+
+defword udot, "u."                      @ ( n -- ) unsigned, in BASE
+udot_code:
+    ldr     r0, [r4], #4
+    ldr     r1, =base_v
+    ldr     r1, [r1]
+    bl      print_base
     b       next
 
 defword hdot, "h."
@@ -696,45 +902,176 @@ hdot_code:
     add     r4, r4, #4
     b       next
 
-defword emit, "emit"
+defword base_w, "base"                  @ ( -- addr ) BASE variable
+base_w_code:
+    ldr     r0, =base_v
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword span_w, "span"                  @ ( -- addr ) SPAN variable (last accept len)
+span_w_code:
+    ldr     r0, =span_v
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword emit, "emit"                    @ ( c -- ) via console emit vector
 emit_code:
-    ldr     r3, [r4]
-    add     r4, r4, #4
+    ldr     r0, =con_emit
+    ldr     r0, [r0]
+    bl      execute_xt
+    b       next
+
+defword emit_uart, "emit-uart"          @ ( c -- ) PL011 emit (console-uart target)
+emit_uart_code:
+    ldr     r3, [r4], #4
     bl      emit_char
     b       next
 
-defword key, "key"
+defword key, "key"                      @ ( -- c ) via console key vector
 key_code:
+    ldr     r0, =con_key
+    ldr     r0, [r0]
+    bl      execute_xt
+    b       next
+
+defword key_uart, "key-uart"            @ ( -- c ) PL011 blocking read
+key_uart_code:
     bl      key_char
     sub     r4, r4, #4
     str     r0, [r4]
     b       next
 
-defword keyq, "key?"
+defword keyq, "key?"                    @ ( -- flag ) via console key? vector
 keyq_code:
+    ldr     r0, =con_keyq
+    ldr     r0, [r0]
+    bl      execute_xt
+    b       next
+
+defword keyq_uart, "key?-uart"          @ ( -- flag ) PL011 RX-empty?
+keyq_uart_code:
     add     r1, r9, #0x200000
     add     r1, r1, #0x1000
     add     r1, r1, #0x18               @ FR
     ldr     r2, [r1]
     tst     r2, #0x10                   @ RXFE
-    movne   r1, #0
-    moveq   r1, #1
+    movne   r0, #0
+    moveq   r0, #1
     sub     r4, r4, #4
-    str     r1, [r4]
+    str     r0, [r4]
     b       next
 
 defword cr, "cr"
 cr_code:
     mov     r3, #13
-    bl      emit_char
+    bl      emit_vec
     mov     r3, #10
-    bl      emit_char
+    bl      emit_vec
     b       next
 
 defword space, "space"
 space_code:
     mov     r3, #32
-    bl      emit_char
+    bl      emit_vec
+    b       next
+
+defword type_w, "type"                  @ ( addr len -- ) print len chars via vector
+type_w_code:
+    ldr     r1, [r4], #4                @ len
+    ldr     r0, [r4], #4                @ addr
+1:  cmp     r1, #0
+    beq     2f
+    push    {r0, r1}
+    ldrb    r3, [r0]
+    bl      emit_vec
+    pop     {r0, r1}
+    add     r0, r0, #1
+    sub     r1, r1, #1
+    b       1b
+2:  b       next
+
+defword accept, "accept"                @ ( addr len -- n ) line into addr, echo, -> SPAN
+accept_code:
+    ldr     r1, [r4], #4                @ max
+    ldr     r0, [r4], #4                @ buf
+    push    {r5}
+    mov     r5, r0                      @ buf
+    sub     r4, r4, #8                  @ scratch on data stack (key_vec/emit_vec
+    str     r1, [r4]                    @ clobber r0-r3,r10-r12): [sp]=max [sp+4]=cnt
+    mov     r0, #0
+    str     r0, [r4, #4]
+1:  bl      key_vec
+    cmp     r0, #0x0D
+    beq     2f
+    cmp     r0, #0x0A
+    beq     2f
+    cmp     r0, #0x08
+    beq     3f
+    cmp     r0, #0x7F
+    beq     3f
+    ldr     r1, [r4]                    @ max
+    ldr     r2, [r4, #4]                @ count
+    cmp     r2, r1
+    bhs     1b
+    strb    r0, [r5, r2]
+    add     r2, r2, #1
+    str     r2, [r4, #4]
+    mov     r3, r0
+    bl      emit_vec
+    b       1b
+3:  ldr     r2, [r4, #4]
+    cmp     r2, #0
+    beq     1b
+    sub     r2, r2, #1
+    str     r2, [r4, #4]
+    mov     r3, #8
+    bl      emit_vec
+    mov     r3, #32
+    bl      emit_vec
+    mov     r3, #8
+    bl      emit_vec
+    b       1b
+2:  mov     r3, #13
+    bl      emit_vec
+    mov     r3, #10
+    bl      emit_vec
+    ldr     r2, [r4, #4]
+    ldr     r0, =span_v
+    str     r2, [r0]
+    add     r4, r4, #8
+    sub     r4, r4, #4
+    str     r2, [r4]
+    pop     {r5}
+    b       next
+
+defword expect, "expect"                @ ( addr len -- n ) same as accept
+expect_code:
+    b       accept_code
+
+defword err, "err"                      @ ( -- ) reset compile state after error
+err_code:
+    bl      err_impl
+    b       next
+
+@ console_uart_impl : point console vectors at the UART primitives
+    .global console_uart_impl
+console_uart_impl:
+    ldr     r0, =emit_uart_hdr
+    ldr     r1, =con_emit
+    str     r0, [r1]
+    ldr     r0, =key_uart_hdr
+    ldr     r1, =con_key
+    str     r0, [r1]
+    ldr     r0, =keyq_uart_hdr
+    ldr     r1, =con_keyq
+    str     r0, [r1]
+    bx      lr
+
+defword console_uart, "console-uart"    @ ( -- ) select UART console
+console_uart_code:
+    bl      console_uart_impl
     b       next
 
 defword io_base, "io-base"
@@ -766,6 +1103,13 @@ cold_code:
     str     r1, [r2]
     mov     r4, r1
     mov     r8, #0                      @ state = interpreting
+    bl      console_uart_impl           @ console vectors -> UART
+    ldr     r0, =base_v
+    mov     r1, #10
+    str     r1, [r0]                    @ BASE = 10
+    ldr     r0, =hist_view
+    mov     r1, #0xFF
+    str     r1, [r0]                    @ history recall view = none
     bl      uart_init
     ldr     r0, =banner
     bl      print_str
@@ -1316,13 +1660,24 @@ dotquote_code:
     str     r12, [r2]                   @ in_ptr past string
     cmp     r8, #0                      @ interpreting: print directly
     bne     dq_compile
-    mov     r12, r1                     @ r12 = len (emit_char clobbers r1)
-7:  cmp     r12, #0
-    beq     dq_done
-    ldrb    r3, [r0], #1
-    bl      emit_char
-    sub     r12, r12, #1
+    sub     r4, r4, #8                  @ print via vector; keep addr/len on the
+    str     r0, [r4]                    @ data stack (emit_vec clobbers r0-r3,r12)
+    str     r1, [r4, #4]
+7:  ldr     r1, [r4, #4]
+    cmp     r1, #0
+    beq     71f
+    ldr     r0, [r4]
+    ldrb    r3, [r0]
+    bl      emit_vec
+    ldr     r0, [r4]
+    add     r0, r0, #1
+    str     r0, [r4]
+    ldr     r1, [r4, #4]
+    sub     r1, r1, #1
+    str     r1, [r4, #4]
     b       7b
+71: add     r4, r4, #8
+    b       dq_done
 dq_compile:
     add     r7, r7, #3
     bic     r7, r7, #3
@@ -1345,22 +1700,39 @@ dq_done:
 defword dotq_rt, "(.\""                 @ runtime of ." : (IP: addr len --)
 dotq_rt_code:
     ldr     r0, [r10], #4               @ addr
-    ldr     r12, [r10], #4              @ len (emit_char clobbers r1)
-    add     r10, r10, r12               @ skip the string embedded in the body
+    ldr     r1, [r10], #4               @ len
+    add     r10, r10, r1                @ skip the string embedded in the body
     add     r10, r10, #3
     bic     r10, r10, #3
-1:  cmp     r12, #0
+    sub     r4, r4, #8                  @ addr/len on data stack (emit_vec clobbers
+    str     r0, [r4]                    @ r0-r3, r10-r12)
+    str     r1, [r4, #4]
+1:  ldr     r1, [r4, #4]
+    cmp     r1, #0
     beq     2f
-    ldrb    r3, [r0], #1
-    bl      emit_char
-    sub     r12, r12, #1
+    ldr     r0, [r4]
+    ldrb    r3, [r0]
+    bl      emit_vec
+    ldr     r0, [r4]
+    add     r0, r0, #1
+    str     r0, [r4]
+    ldr     r1, [r4, #4]
+    sub     r1, r1, #1
+    str     r1, [r4, #4]
     b       1b
-2:  b       next
+2:  add     r4, r4, #8
+    b       next
 
 defword tramp, "tramp"
 tramp_code:
-    ldr     r12, =exec_lr
-    ldr     pc, [r12]
+    ldr     r12, =exec_idx
+    ldr     r11, [r12]
+    sub     r11, r11, #1
+    str     r11, [r12]
+    ldr     r3, =exec_stack
+    add     r3, r3, r11, lsl #3
+    ldr     r10, [r3]                   @ restore IP saved by execute_xt
+    ldr     pc, [r3, #4]                @ return via saved lr
 
     .set    seed_latest, last_hdr
     .global seed_latest
@@ -1395,9 +1767,29 @@ board_rev:  .space  4
 ps0:        .space  4
     .global exec_cell
 exec_cell:  .space  4
-    .global exec_lr
-exec_lr:    .space  4
+    .global exec_stack
+exec_stack: .space  512               @ 64 entries of (IP, lr) for execute_xt
+    .global exec_idx
+exec_idx:   .space  4
     .global in_ptr
 in_ptr:     .space  4
     .global wordbuf
 wordbuf:    .space  64
+    .global con_emit
+con_emit:   .space  4
+    .global con_key
+con_key:    .space  4
+    .global con_keyq
+con_keyq:   .space  4
+    .global base_v
+base_v:     .space  4
+    .global span_v
+span_v:     .space  4
+    .global hist
+hist:       .space  8*132                 @ 8-line history ring
+    .global hist_idx
+hist_idx:   .space  4
+    .global hist_cnt
+hist_cnt:   .space  4
+    .global hist_view
+hist_view:  .space  4

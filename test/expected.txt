@@ -52,4 +52,32 @@ ok> greet
 Hello, FUNForth ok
 ok> 1 2 2dup . . . .
 2121 ok
+ok> foobar
+-? foobar ok
+ok> 40 2 + .
+42 ok
+ok> 40 2 + .
+42 ok
+ok> 65 emit
+A ok
+ok> 1 . space 2 .
+1 2 ok
+ok> key? .
+0 ok
+ok> 16 base ! 255 .
+FF ok
+ok> 255 u.
+FF ok
+ok> 2 base ! 5 .
+101 ok
+ok> 10 base !
+ ok
+ok> -1 u.
+4294967295 ok
+ok> here 8 allot here 8 - 5 72 fill here 8 - 5 type
+HHHHH ok
+ok> span @ .
+0 ok
+ok> console-uart
+ ok
 ok> 

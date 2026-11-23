@@ -230,7 +230,7 @@ Tracking table (check off in the PR that completes the milestone):
 | [x] M1 | Seed machine setup + IO-BASE + seed REPL | A | M0 | `make test` M1 |
 | [x] M2 | Seed stack/arith/memory word set | A | M1 | `make test` t-core part 1 |
 | [x] M3 | Branch words + embedded core + compiler (`:` `;`) | A | M2 | greet/sq transcript |
-| [ ] M4 | QUIT/QUERY console discipline + console words | B | M3 | `make test` t-core part 2 |
+| [x] M4 | QUIT/QUERY console discipline + console words | B | M3 | `make test` t-core part 2 |
 | [ ] M5 | Control-flow words | B | M4 | `make test` t-core part 3 |
 | [ ] M6 | `words` / `see` / `forget` / `marker` | B | M5 | `make test` t-core part 4 |
 | [ ] M7 | System timer `micros millis ms tick-start` | C | M4 | t-drivers timer |
@@ -293,6 +293,20 @@ Per-milestone definition (artifacts / behavior / acceptance):
   space type expect span accept` via per-task console vector (`console-uart`);
   number output `. u. base`. Acceptance: t-core part 2 golden, including error
   `foobar` -> `-? foobar ok`.
+  Implemented: `QUERY` reads via the console key vector with echo/backspace and an
+  8-line history ring (ESC [ A / ESC [ B recall, redraw = `\b space \b` per char,
+  non-empty lines stored); console vectors are cells `con_emit`/`con_key`/`con_keyq`
+  (single task at M4) set by `console-uart` to `emit-uart`/`key-uart`/`key?-uart`;
+  `emit key key? cr space type accept expect span` route through them (`accept` =
+  `expect`, stores the count in `SPAN`); `base` variable (default 10) with
+  base-aware `.`/`u.` (`print_base`, digits 0-9A-Z); `err` resets compile state.
+  `execute_xt` saves IP+lr on a memory stack (`exec_stack`/`exec_idx`), NOT on r13,
+  because r13 is shared with the Forth return stack (`>r`/`r>`). Acceptance
+  (`test/all.fth` golden, `make test`): `foobar` -> `-? foobar ok`;
+  `40 2 + .` then ESC[A recalls it -> `42 ok` twice; `65 emit` -> `A ok`;
+  `1 . space 2 .` -> `1 2 ok`; `key? .` -> `0 ok`; `16 base ! 255 .` -> `FF ok`;
+  `255 u.` -> `FF ok`; `2 base ! 5 .` -> `101 ok`; `-1 u.` -> `4294967295 ok`;
+  `here 8 allot here 8 - 5 72 fill here 8 - 5 type` -> `HHHHH ok`.
 - **M5 Control flow.** Artifacts: the v1.0 4.1 word list implemented in `core.fth`.
   Acceptance: t-core part 3 golden: `5 0 do i . loop` -> `0 1 2 3 4 ok`, recursive
   fib `10 fib .` -> `55 ok`, `case` example.
