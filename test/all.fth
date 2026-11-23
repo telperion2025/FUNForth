@@ -119,3 +119,8 @@ micros 10 ms micros swap - dup 9000 < 0= swap 100000 > 0= and .
 47 2 pin-pull
 47 0 pin-pull
 hal-pud-wait .
+\ --- M9: mailbox property channel ---
+ram-size h.
+board-rev h.
+mac h. h.
+temp 0< 0= .

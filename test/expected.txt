@@ -216,7 +216,7 @@ ok> forget zz
 ok> zz
 -? zz ok
 ok> words
-tn tl b1 a1 xx t2 tcase3 tcase1 fib tuntil twhile tqdo0 tqdo tploop tloop greet sq led! pin-pull io-wait pin@ pin-clr pin! pin-mode gppud! gpio-mask gpio-pudclk gpio-lev gpio-clr gpio-set gpio-fsel tick? tick-start ms millis micros sys-c1 sys-clo sys-cs see cell. words .name align4 endcase endpatch endof of case casecnt ?dup +loop loop leave ?do do patchleaves ldepth lpop lpush leavesp leavebuf repeat while again until begin then else if cfdepth cfpop cfpush cfsp cfbuf 2dup marker forget docol-addr count >name j i unloop (leave) (+loop) (loop) (?do) (do) boot-msg refill abort state ['] ' execute number find postpone ] [ ( tramp (." ." create immediate literal ; : word (0branch) (branch) lit exit move fill c, , allot w! w@ +! c! c@ ! @ negate abs 2/ 2* 1- 1+ max min <> u< > < = 0> 0< 0= rshift lshift invert xor or and u/mod /mod * - rdrop r@ r> >r rot tuck nip quit bye warm cold here latest hal-pud-wait io-base console-uart err expect accept type space cr key?-uart key? key-uart key emit-uart emit span base h. u. . + depth over swap drop dup 
+tn tl b1 a1 xx t2 tcase3 tcase1 fib tuntil twhile tqdo0 tqdo tploop tloop greet sq temp ram-size mac board-rev board-model mbox-tag mbox-buf align16 mbox-call mbox-empty mbox-full mbox-write! mbox-status@ mbox-read@ led! pin-pull io-wait pin@ pin-clr pin! pin-mode gppud! gpio-mask gpio-pudclk gpio-lev gpio-clr gpio-set gpio-fsel tick? tick-start ms millis micros sys-c1 sys-clo sys-cs see cell. words .name align4 endcase endpatch endof of case casecnt ?dup +loop loop leave ?do do patchleaves ldepth lpop lpush leavesp leavebuf repeat while again until begin then else if cfdepth cfpop cfpush cfsp cfbuf 2dup marker forget docol-addr count >name j i unloop (leave) (+loop) (loop) (?do) (do) boot-msg refill abort state ['] ' execute number find postpone ] [ ( tramp (." ." create immediate literal ; : word (0branch) (branch) lit exit move fill c, , allot w! w@ +! c! c@ ! @ negate abs 2/ 2* 1- 1+ max min <> u< > < = 0> 0< 0= rshift lshift invert xor or and u/mod /mod * - rdrop r@ r> >r rot tuck nip quit bye warm cold here latest hal-pud-wait io-base console-uart err expect accept type space cr key?-uart key? key-uart key emit-uart emit span base h. u. . + depth over swap drop dup 
  ok
 ok> \ --- M7: system timer ---
  ok
@@ -244,4 +244,14 @@ ok> 47 0 pin-pull
  ok
 ok> hal-pud-wait .
 150 ok
+ok> \ --- M9: mailbox property channel ---
+ ok
+ok> ram-size h.
+20000000 ok
+ok> board-rev h.
+00920092 ok
+ok> mac h. h.
+0400573412005452 ok
+ok> temp 0< 0= .
+-1 ok
 ok> 

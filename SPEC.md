@@ -235,7 +235,7 @@ Tracking table (check off in the PR that completes the milestone):
 | [x] M6 | `words` / `see` / `forget` / `marker` | B | M5 | `make test` t-core part 4 |
 | [x] M7 | System timer `micros millis ms tick-start` | C | M4 | t-drivers timer (`make test` M7 section) |
 | [x] M8 | GPIO `pin-mode pin! pin@ pin-pull led!` | C | M7 | t-drivers gpio (`make test` M8 section) |
-| [ ] M9 | Mailbox properties | C | M1 | t-drivers mbox |
+| [x] M9 | Mailbox properties | C | M1 | t-drivers mbox (`make test` M9 section) |
 | [ ] M10 | Framebuffer + VDI + font, screendump test | C | M9 | `make test-fb` diff |
 | [ ] M11 | `console-fb` 80x25 grid + cursor blink | C | M10 | `make test-fb` text diff |
 | [ ] M12 | SD (Arasan SDHCI) + FAT32 RO + `boot.lst`/`load` | C | M4 | `make test-sd` checksum |
@@ -369,10 +369,27 @@ Per-milestone definition (artifacts / behavior / acceptance):
   `1 led! 47 pin@ .` -> `0 ok` (active low); `0 led!` -> `1 ok`;
   `47 2 pin-pull` / `47 0 pin-pull` no-op cleanly; `hal-pud-wait .` -> `150 ok`;
   hardware: ACT LED blinks.
-- **M9 Mailbox.** Artifacts: `drivers/mailbox.fth`: `mbox-call` (channel 8,
-  16-byte-aligned buffer) + `board-model board-rev mac ram-size temp`. Acceptance on
-  QEMU raspi0: `ram-size .` prints the QEMU RAM size (512M => `200000 ok` in hex
-  `20000000`), `board-rev h.` prints a revision word.
+- **M9 Mailbox.** Artifacts: `drivers/mailbox.fth` (embedded via `.incbin` after
+  `drivers/gpio.fth`, interpreted at cold) over mailbox 0 at `io-base+0xB880`:
+  `mbox-read@ mbox-status@ mbox-write!`, `mbox-full`/`mbox-empty` (STATUS bit31
+  full / bit30 empty, computed as `1 31 lshift` / `1 30 lshift` — hex literals
+  don't work because BASE is cached per INTERPRET call), `mbox-call`
+  (buf -- resp): wait-not-full, write `(buf & ~0xF) | 8`, poll until a channel-8
+  message arrives, strip the channel nibble. The buffer must be **16-byte
+  aligned** — `create` puts a 20-byte header before the PFA, so
+  `create mbox-buf 0 , align16 here mbox-buf ! 128 allot` (variable holding the
+  aligned address). `mbox-tag` builds a 32-byte single-tag message
+  ([0]=size [1]=0 [2]=tag [3]=8 [4]=0 [5..6]=value [7]=0 end) and returns
+  buf+20. Tags (decimal, BASE is cached per line): 65537 board-model,
+  65538 board-rev, 65539 mac (8 bytes at buf+20), 65542 vc-mem (base,size —
+  `ram-size` = base+size = total RAM), 196614 temp (milli-C; QEMU writes it at
+  value+16, real firmware at value+12 — we read buf+20 per spec). Acceptance on
+  QEMU raspi0 (`test/all.fth` golden, `make test`): `ram-size h.` ->
+  `20000000 ok` (512M), `board-rev h.` -> `00920092 ok`, `mac h. h.` ->
+  `0400573412005452 ok` (QEMU default 52:54:00:12:34:5x), `temp 0< 0= .` ->
+  `-1 ok` (QEMU writes temp at value+16 so buf+20 reads 0). QEMU's board-model
+  tag (65537) is NYI. NOTE: kernel.img is now 15916 B of the 16 KB limit —
+  M10+ drivers/font must move to the SD-loaded image (M12) or be comment-stripped.
 - **M10 Framebuffer + VDI.** Artifacts: `drivers/fb.fth` (`fb-alloc` via tags
   0x40001, 640x400 1bpp, `fb-off`), `vdi.fth` (`clip! pixel line rect fillrect
   invert-rect blit text`), embedded `font8x16` + `glyph`. Acceptance: `make test-fb`

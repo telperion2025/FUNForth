@@ -1148,6 +1148,8 @@ cold_code:
     bl      interpret                    @ embedded drivers/timer.fth (M7+)
     ldr     r0, =gpio_fth
     bl      interpret                    @ embedded drivers/gpio.fth (M8+)
+    ldr     r0, =mbox_fth
+    bl      interpret                    @ embedded drivers/mailbox.fth (M9+)
     b       quit_code
 
 defword warm, "warm"
@@ -2110,6 +2112,11 @@ gpio_fth:
     .incbin "drivers/gpio.fth"
     .byte   0                           @ NUL-terminate for interpret
 gpio_fth_end:
+    .global mbox_fth
+mbox_fth:
+    .incbin "drivers/mailbox.fth"
+    .byte   0                           @ NUL-terminate for interpret
+mbox_fth_end:
 
     .section .bss
     .align 2
