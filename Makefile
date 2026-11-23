@@ -31,6 +31,9 @@ kernel.img: kernel.elf
 %.o: %.S
 	$(CROSS)gcc $(ASFLAGS) -c -o $@ $<
 
+# seed.S .incbin's forth/core.fth: rebuild the object when the source changes
+src/seed.o: forth/core.fth
+
 # QEMU loads a raw -kernel image at 0x10000 on raspi models, so the harness
 # boots kernel.elf (linked at the architectural 0x8000). Hardware boots the
 # raw kernel.img at 0x8000 via the GPU firmware.

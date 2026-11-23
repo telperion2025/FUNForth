@@ -126,4 +126,64 @@ ok> : t2 [ 40 2 + ] . ;
  ok
 ok> t2
 42 ok
+ok> \ --- extended edge-case tests (review pass) ---
+ ok
+ok> -7 2 /mod . .
+-3-1 ok
+ok> -1 10 u/mod . .
+4294967295 ok
+ok> 16 base ! -255 .
+-FF ok
+ok> 36 base ! 35 .
+Z ok
+ok> 36 base ! 36 .
+10 ok
+ok> 10 base !
+ ok
+ok> 1 base ! 123 .
+123 ok
+ok> 10 base !
+ ok
+ok> create xx 42 , xx @ .
+42 ok
+ok> word abc c@ .
+97 ok
+ok> : a1 1 ;
+ ok
+ok> : b1 2 ;
+ ok
+ok> a1 b1 + .
+3 ok
+ok> ." direct string"
+direct string ok
+ok> ( paren comment ) 5 6 + .
+11 ok
+ok> 1 2 3 abort depth .
+0 ok
+ok> state @ .
+0 ok
+ok> 1 2 3 depth . drop drop drop
+3 ok
+ok> 0 0= . 5 0= .
+-10 ok
+ok> : tl 10 0 do i . i 5 = if leave then loop ;
+ ok
+ok> tl
+012345 ok
+ok> : tn 3 0 do 2 0 do i . j . loop loop ;
+ ok
+ok> tn
+001001110212 ok
+ok> : tg ." a b, c!" ;
+ ok
+ok> tg
+a b, c! ok
+ok> here latest @ u< .
+0 ok
+ok> here 8 allot here 8 - 3 65 fill here 8 - here 8 - 8 + 3 move here 8 - 8 + c@ .
+65 ok
+ok> foobar 1 2 + .
+-? foobar ok
+ok> 7 3 mod-check-nope
+-? mod-check-nope ok
 ok> 

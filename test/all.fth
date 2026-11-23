@@ -62,3 +62,33 @@ tcase3
 7 ' sq execute .
 : t2 [ 40 2 + ] . ;
 t2
+\ --- extended edge-case tests (review pass) ---
+-7 2 /mod . .
+-1 10 u/mod . .
+16 base ! -255 .
+36 base ! 35 .
+36 base ! 36 .
+10 base !
+1 base ! 123 .
+10 base !
+create xx 42 , xx @ .
+word abc c@ .
+: a1 1 ;
+: b1 2 ;
+a1 b1 + .
+." direct string"
+( paren comment ) 5 6 + .
+1 2 3 abort depth .
+state @ .
+1 2 3 depth . drop drop drop
+0 0= . 5 0= .
+: tl 10 0 do i . i 5 = if leave then loop ;
+tl
+: tn 3 0 do 2 0 do i . j . loop loop ;
+tn
+: tg ." a b, c!" ;
+tg
+here latest @ u< .
+here 8 allot here 8 - 3 65 fill here 8 - here 8 - 8 + 3 move here 8 - 8 + c@ .
+foobar 1 2 + .
+7 3 mod-check-nope

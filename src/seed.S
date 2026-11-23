@@ -233,6 +233,10 @@ print_hex:
 print_base:
     push    {lr}
     sub     sp, sp, #8
+    cmp     r1, #2                      @ clamp BASE to 2..36 (avoids hang/garbage)
+    movlo   r1, #10
+    cmp     r1, #36
+    movhi   r1, #36
     str     r1, [sp]                    @ base
     ldr     r3, =numbuf + 16
     str     r3, [sp, #4]                @ digit ptr (grows down from numbuf+16)

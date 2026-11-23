@@ -25,12 +25,17 @@ create cfsp 0 ,
 : while postpone (0branch) here 0 , cfpush ; immediate
 : repeat postpone (branch) here 0 , cfpop here swap ! cfpop swap ! ; immediate
 
-: patchextra ( p -- ) cfdepth 2 > if cfpop here swap ! patchextra then ;
+create leavebuf 64 allot
+create leavesp 0 ,
+: lpush ( x -- ) leavesp @ 2 lshift leavebuf + ! leavesp @ 1+ leavesp ! ;
+: lpop ( -- x ) leavesp @ 1- dup leavesp ! 2 lshift leavebuf + @ ;
+: ldepth ( -- n ) leavesp @ ;
+: patchleaves ( -- ) ldepth 0> if lpop here swap ! patchleaves then ;
 : do  postpone (do) here 0 , cfpush here cfpush ; immediate
 : ?do postpone (?do) here 0 , cfpush here cfpush ; immediate
-: leave postpone (leave) here 0 , cfpush ; immediate
-: loop postpone (loop) postpone (branch) here 0 , patchextra cfpop swap ! cfpop here swap ! ; immediate
-: +loop postpone (+loop) postpone (branch) here 0 , patchextra cfpop swap ! cfpop here swap ! ; immediate
+: leave postpone (leave) here 0 , lpush ; immediate
+: loop postpone (loop) postpone (branch) here 0 , patchleaves cfpop swap ! cfpop here swap ! ; immediate
+: +loop postpone (+loop) postpone (branch) here 0 , patchleaves cfpop swap ! cfpop here swap ! ; immediate
 
 : ?dup dup if dup then ;
 
