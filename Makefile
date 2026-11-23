@@ -29,7 +29,8 @@ QEMU_PY := python3 tools/qemu-ctl.py
 
 SD_FILES := BOOT.LST=sd/boot.lst TIMER.FTH=drivers/timer.fth \
             GPIO.FTH=drivers/gpio.fth MBOX.FTH=drivers/mailbox.fth \
-            HELLO.TXT=sd/hello.txt
+            HELLO.TXT=sd/hello.txt FB.FTH=drivers/fb.fth VDI.FTH=drivers/vdi.fth \
+            FONT8X16.FTH=drivers/font8x16.fth
 
 all: kernel.img kernel.elf
 
@@ -54,7 +55,7 @@ kernel.img: kernel.elf
 # seed.S .incbin's the stripped build/*.fth: rebuild when they change
 src/seed.o: $(EMBED)
 
-build/sd.img: tools/mksd.py sd/boot.lst sd/hello.txt drivers/timer.fth drivers/gpio.fth drivers/mailbox.fth | build
+build/sd.img: tools/mksd.py sd/boot.lst sd/hello.txt drivers/timer.fth drivers/gpio.fth drivers/mailbox.fth drivers/fb.fth drivers/vdi.fth drivers/font8x16.fth | build
 	python3 tools/mksd.py $@ 32 $(SD_FILES)
 
 # QEMU loads a raw -kernel image at 0x10000 on raspi models, so the harness
@@ -69,8 +70,9 @@ test: kernel.elf build/sd.img
 test-sd: kernel.elf build/sd.img
 	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/sd.fth --wait-for "ok> " --expected test/expected-sd.txt
 
-test-fb: kernel.img
-	@echo "$@ requires a later milestone (see SPEC.md)" && exit 1
+test-fb: kernel.elf build/sd.img
+	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/fb.fth --wait-for "ok> " --screendump build/fb.ppm --idle 3 --timeout 90
+	python3 tools/fbcheck.py build/fb.ppm test/expected-fb.txt
 
 clean:
 	rm -rf build $(OBJ) kernel.elf kernel.img

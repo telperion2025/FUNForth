@@ -47,6 +47,7 @@ def main():
     ap.add_argument("--kernel", required=True)
     ap.add_argument("--machine", default="raspi0")
     ap.add_argument("--sd", help="SD card image attached to the Arasan SDHCI (+0x300000)")
+    ap.add_argument("--screendump", metavar="PPM", help="after the script, capture the display via QMP screendump into PPM")
     ap.add_argument("--script", help="FORTH script piped over the serial console")
     ap.add_argument("--expected", help="golden transcript to diff against")
     ap.add_argument("--run", action="store_true", help="interactive run (stdio passthrough)")
@@ -63,10 +64,14 @@ def main():
         os.execvpe(cmd[0], cmd, env or os.environ)
 
     # serial via a unix socket (stdio chardev misbehaves with piped stdin)
-    sock_path = os.path.join(tempfile.mkdtemp(prefix="funforth-"), "serial.sock")
+    tmpdir = tempfile.mkdtemp(prefix="funforth-")
+    sock_path = os.path.join(tmpdir, "serial.sock")
     cmd += ["-M", args.machine, "-kernel", args.kernel] + sd + [
             "-serial", "unix:%s,server" % sock_path,
             "-display", "none", "-monitor", "none"]
+    qmp_path = os.path.join(tmpdir, "qmp.sock")
+    if args.screendump:
+        cmd += ["-qmp", "unix:%s,server=on,wait=off" % qmp_path]
 
     script = b""
     if args.script and os.path.exists(args.script):
@@ -130,6 +135,23 @@ def main():
             break
         if time.time() - start > args.timeout:
             break
+
+    if args.screendump:
+        qmp = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        qmp.connect(qmp_path)
+        qmp.settimeout(5)
+        qmp.recv(65536)                                   # greeting
+        qmp.sendall(b'{"execute":"qmp_capabilities"}\n')
+        while b'"return"' not in qmp.recv(65536):
+            pass
+        qmp.sendall(b'{"execute":"screendump","arguments":{"filename":"%s"}}\n'
+                    % os.path.abspath(args.screendump).encode())
+        while True:
+            data = qmp.recv(65536)
+            if b'"return"' in data or b'"error"' in data:
+                break
+        qmp.close()
+
     p.terminate()
     try:
         p.wait(timeout=3)
