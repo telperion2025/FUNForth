@@ -186,4 +186,36 @@ ok> foobar 1 2 + .
 -? foobar ok
 ok> 7 3 mod-check-nope
 -? mod-check-nope ok
+ok> \ --- M6: introspection ---
+ ok
+ok> see sq
+sq: dup * ;
+ ok
+ok> see greet
+greet: Hello, FUNForth ;
+ ok
+ok> see dup
+<code> 00008A9C 3
+ ok
+ok> marker m1
+ ok
+ok> : mw 123 ;
+ ok
+ok> mw .
+123 ok
+ok> m1
+ ok
+ok> mw
+-? mw ok
+ok> : zz 99 ;
+ ok
+ok> zz .
+99 ok
+ok> forget zz
+ ok
+ok> zz
+-? zz ok
+ok> words
+tn tl b1 a1 xx t2 tcase3 tcase1 fib tuntil twhile tqdo0 tqdo tploop tloop greet sq see cell. words .name align4 endcase endpatch endof of case casecnt ?dup +loop loop leave ?do do patchleaves ldepth lpop lpush leavesp leavebuf repeat while again until begin then else if cfdepth cfpop cfpush cfsp cfbuf 2dup marker forget docol-addr count >name j i unloop (leave) (+loop) (loop) (?do) (do) boot-msg refill abort state ['] ' execute number find postpone ] [ ( tramp (." ." create immediate literal ; : word (0branch) (branch) lit exit move fill c, , allot w! w@ +! c! c@ ! @ negate abs 2/ 2* 1- 1+ max min <> u< > < = 0> 0< 0= rshift lshift invert xor or and u/mod /mod * - rdrop r@ r> >r rot tuck nip quit bye warm cold here latest io-base console-uart err expect accept type space cr key?-uart key? key-uart key emit-uart emit span base h. u. . + depth over swap drop dup 
+ ok
 ok> 

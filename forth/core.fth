@@ -45,3 +45,38 @@ create casecnt 0 ,
 : endof postpone (branch) here 0 , cfpop here swap ! cfpush casecnt @ 1+ casecnt ! ; immediate
 : endpatch ( -- ) cfdepth 0> if cfpop here swap ! endpatch then ;
 : endcase postpone drop endpatch ; immediate
+
+\ ---- M6: introspection (words see; forget marker are asm) ----
+: align4 ( a -- a' ) 3 + -4 and ;
+: .name ( hdr -- hdr ) dup 9 + c@ over 10 + swap type ;   \ print name, keep hdr
+
+: words ( -- )   \ latest-first, 8 per line
+  0 latest @
+  begin dup 0= 0= while
+    dup .name space @
+    swap 1+ swap
+    over 8 /mod drop 0= if cr then
+  repeat drop drop cr ;
+
+: cell. ( ip -- ip' )  \ print one cell, return next ip
+  dup @ ['] lit = if dup 4 + @ ." lit " . space 8 + exit then
+  dup @ dup ['] (0branch) = swap ['] (branch) = or if dup 4 + @ ." -> " h. space 8 + exit then
+  dup @ ['] (." = if
+    dup 4 + @ over 8 + @ type space dup 8 + @ 12 + + align4 exit
+  then
+  dup @ >name dup 0= if drop ." ? " 4 + exit then
+  dup 9 + c@ swap 10 + swap type space 4 + ;
+
+: see ( -- )
+  word count 2dup find 0= if
+    drop ." -? " type cr exit
+  then
+  nip nip
+  dup 4 + @ docol-addr = if
+    .name ." : "
+    dup 9 + c@ + 10 + align4
+    begin dup @ ['] exit <> while cell. repeat
+    drop ." ;" cr
+  else
+    ." <code> " dup h. space dup 9 + c@ . cr drop
+  then ;

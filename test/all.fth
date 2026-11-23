@@ -92,3 +92,17 @@ here latest @ u< .
 here 8 allot here 8 - 3 65 fill here 8 - here 8 - 8 + 3 move here 8 - 8 + c@ .
 foobar 1 2 + .
 7 3 mod-check-nope
+\ --- M6: introspection ---
+see sq
+see greet
+see dup
+marker m1
+: mw 123 ;
+mw .
+m1
+mw
+: zz 99 ;
+zz .
+forget zz
+zz
+words

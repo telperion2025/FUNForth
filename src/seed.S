@@ -1980,6 +1980,88 @@ j_w_code:
     b       next
     .ltorg
 
+@ ---- M6: introspection ------------------------------------------------------
+@ name_of ( r0 = xt -- r0 = hdr | 0 ) : reverse dictionary walk
+    .global name_of
+name_of:
+    mov     r1, r6
+1:  cmp     r1, #0
+    beq     2f
+    cmp     r1, r0
+    beq     3f
+    ldr     r1, [r1]
+    b       1b
+2:  mov     r0, #0
+3:  bx      lr
+
+defword to_name, ">name"                @ ( xt -- hdr | 0 )
+to_name_code:
+    ldr     r0, [r4], #4
+    bl      name_of
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword count_w, "count"                @ ( addr -- addr len ) strlen
+count_w_code:
+    ldr     r0, [r4]
+    mov     r1, #0
+1:  ldrb    r2, [r0, r1]
+    cmp     r2, #0
+    beq     2f
+    add     r1, r1, #1
+    b       1b
+2:  sub     r4, r4, #4
+    str     r1, [r4]
+    b       next
+
+defword docol_addr, "docol-addr"        @ ( -- a ) address of DOCOL
+docol_addr_code:
+    ldr     r0, =docol
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword forget, "forget"                @ ( -- ) parse name, unlink (latest/here back)
+forget_code:
+    bl      parse_name
+    bl      find
+    cmp     r0, #0
+    bne     1f
+    bl      err_impl
+    ldr     r0, =str_err
+    bl      print_str
+    ldr     r0, =wordbuf
+    bl      print_str
+    b       next
+1:  ldr     r1, [r0]                  @ link
+    mov     r6, r1
+    mov     r7, r0
+    b       next
+
+defword marker, "marker"                @ ( -- ) create word restoring latest/here
+marker_code:
+    bl      parse_name
+    push    {r6, r7}
+    ldr     r2, =domarker
+    bl      header_create
+    pop     {r0, r1}                  @ r0 = old latest, r1 = old here
+    str     r0, [r7], #4
+    str     r1, [r7], #4
+    b       next
+
+    .global domarker
+domarker:                               @ ( -- ) restore saved latest/here
+    ldrb    r1, [r11, #9]
+    add     r0, r11, #10
+    add     r0, r0, r1
+    add     r0, r0, #3
+    bic     r0, r0, #3
+    ldr     r6, [r0]
+    ldr     r7, [r0, #4]
+    b       next
+    .ltorg
+
     .set    seed_latest, last_hdr
     .global seed_latest
     .ltorg

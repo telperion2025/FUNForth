@@ -232,7 +232,7 @@ Tracking table (check off in the PR that completes the milestone):
 | [x] M3 | Branch words + embedded core + compiler (`:` `;`) | A | M2 | greet/sq transcript |
 | [x] M4 | QUIT/QUERY console discipline + console words | B | M3 | `make test` t-core part 2 |
 | [x] M5 | Control-flow words | B | M4 | `make test` t-core part 3 |
-| [ ] M6 | `words` / `see` / `forget` / `marker` | B | M5 | `make test` t-core part 4 |
+| [x] M6 | `words` / `see` / `forget` / `marker` | B | M5 | `make test` t-core part 4 |
 | [ ] M7 | System timer `micros millis ms tick-start` | C | M4 | t-drivers timer |
 | [ ] M8 | GPIO `pin-mode pin! pin@ pin-pull led!` | C | M7 | t-drivers gpio |
 | [ ] M9 | Mailbox properties | C | M1 | t-drivers mbox |
@@ -325,8 +325,22 @@ Per-milestone definition (artifacts / behavior / acceptance):
   `1 case 1 of ." one" endof ." other" endcase` -> `one ok`; same with 3/1/2 ->
   `other ok`; `5 ?dup . .` -> `55 ok`; `7 ' sq execute .` -> `49 ok`;
   `: t2 [ 40 2 + ] . ; t2` -> `42 ok`.
-- **M6 Introspection.** Artifacts: `words see forget marker`. Acceptance: `see sq`
-  prints the decompiled definition; `words` lists latest first, 8 per line.
+- **M6 Introspection.** Artifacts: `words see forget marker`. Seed (asm): `>name`
+  (reverse dictionary walk from `latest`, r0=xt -> r0=hdr|0), `count`,
+  `docol-addr`, `forget` (parse+find, then `latest=[xt]` link, `here=xt`),
+  `marker` + `domarker` (header whose PFA stores old latest/here; `domarker`
+  restores both). FORTH in `core.fth`: `align4`, `.name` (prints a header name,
+  keeps hdr — the consuming idiom `dup 9 + c@ swap 10 + swap type` eats the hdr
+  when it is alone on the stack), `words` (latest-first walk via the link field,
+  8 per line), `cell.` (decompiles one cell: `lit n`, `-> target` for
+  (0branch)/(branch), inline string for (.", name via `>name`, else `?`), `see`
+  (`word count 2dup find`, colon words decompiled from PFA until `exit`, code
+  words printed as `<code> hdr len`). Acceptance (`test/all.fth` golden,
+  `make test`): `see sq` -> `sq: dup * ; ok`; `see greet` ->
+  `greet: Hello, FUNForth ; ok`; `see dup` -> `<code> 00008A9C 3 ok`;
+  `marker m1` / `: mw 123 ;` / `mw .` -> `123 ok` / `m1` / `mw` -> `-? mw ok`;
+  `forget zz` then `zz` -> `-? zz ok`; `words` lists the dictionary latest
+  first, 8 per line.
 - **M7 System timer.** Artifacts: `drivers/timer.fth` over +0x3000: `micros millis
   ms tick-start` (1 kHz compare1). Acceptance: `millis dup - .` prints `0 ok`;
   `0 millis 100 ms millis swap - .` prints a value in 90..110.
