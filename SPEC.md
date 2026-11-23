@@ -233,7 +233,7 @@ Tracking table (check off in the PR that completes the milestone):
 | [x] M4 | QUIT/QUERY console discipline + console words | B | M3 | `make test` t-core part 2 |
 | [x] M5 | Control-flow words | B | M4 | `make test` t-core part 3 |
 | [x] M6 | `words` / `see` / `forget` / `marker` | B | M5 | `make test` t-core part 4 |
-| [ ] M7 | System timer `micros millis ms tick-start` | C | M4 | t-drivers timer |
+| [x] M7 | System timer `micros millis ms tick-start` | C | M4 | t-drivers timer (`make test` M7 section) |
 | [ ] M8 | GPIO `pin-mode pin! pin@ pin-pull led!` | C | M7 | t-drivers gpio |
 | [ ] M9 | Mailbox properties | C | M1 | t-drivers mbox |
 | [ ] M10 | Framebuffer + VDI + font, screendump test | C | M9 | `make test-fb` diff |
@@ -341,9 +341,19 @@ Per-milestone definition (artifacts / behavior / acceptance):
   `marker m1` / `: mw 123 ;` / `mw .` -> `123 ok` / `m1` / `mw` -> `-? mw ok`;
   `forget zz` then `zz` -> `-? zz ok`; `words` lists the dictionary latest
   first, 8 per line.
-- **M7 System timer.** Artifacts: `drivers/timer.fth` over +0x3000: `micros millis
-  ms tick-start` (1 kHz compare1). Acceptance: `millis dup - .` prints `0 ok`;
-  `0 millis 100 ms millis swap - .` prints a value in 90..110.
+- **M7 System timer.** Artifacts: `drivers/timer.fth` (embedded via `.incbin`
+  after `forth/core.fth`, interpreted at cold; pure Forth over the BCM2835/2837
+  SYSTIMER at PERIPHERALS+0x3000, offsets from `io-base`: CS=12288 CLO=12292
+  C1=12304): `sys-cs sys-clo sys-c1`, `micros` (CLO, 1 MHz free-running low 32),
+  `millis` (`micros 1000 u/mod nip` — quot is on top of `u/mod`),
+  `ms` (`1000 * micros + begin dup micros swap < 0= until drop` — `until` exits
+  when the flag is true, so the wait condition must be inverted),
+  `tick-start` (C1 = CLO+1000, clear M1 in CS; 1 kHz compare1), `tick?` (CS bit 1).
+  QEMU raspi0/raspi3ap emulate CLO and the C1 compare flag. Acceptance
+  (`test/all.fth` golden, `make test`): `millis dup - .` -> `0 ok`;
+  `0 millis 100 ms millis swap -` in 90..110 -> `-1 ok`;
+  `tick-start 5 ms tick? .` -> `-1 ok`; `micros 10 ms micros swap -` in
+  9000..100000 -> `-1 ok`.
 - **M8 GPIO.** Artifacts: `drivers/gpio.fth`: `pin-mode pin! pin@ pin-pull led!`
   (ACT LED = pin 47), with hal pull-up protocol differences. Acceptance:
   `47 1 pin-mode 47 pin! 47 pin@ .` -> `1 ok`; hardware: ACT LED blinks.

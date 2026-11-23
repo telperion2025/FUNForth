@@ -106,3 +106,8 @@ zz .
 forget zz
 zz
 words
+\ --- M7: system timer ---
+millis dup - .
+0 millis 100 ms millis swap - dup 90 < 0= swap 110 > 0= and . drop
+tick-start 5 ms tick? .
+micros 10 ms micros swap - dup 9000 < 0= swap 100000 > 0= and .

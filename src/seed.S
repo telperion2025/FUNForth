@@ -1126,6 +1126,8 @@ cold_code:
     bl      print_str
     ldr     r0, =core_fth
     bl      interpret                    @ embedded forth/core.fth (test build)
+    ldr     r0, =timer_fth
+    bl      interpret                    @ embedded drivers/timer.fth (M7+)
     b       quit_code
 
 defword warm, "warm"
@@ -2078,6 +2080,11 @@ core_fth:
     .incbin "forth/core.fth"
     .byte   0                           @ NUL-terminate for interpret
 core_fth_end:
+    .global timer_fth
+timer_fth:
+    .incbin "drivers/timer.fth"
+    .byte   0                           @ NUL-terminate for interpret
+timer_fth_end:
 
     .section .bss
     .align 2
