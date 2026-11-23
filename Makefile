@@ -11,7 +11,8 @@ endif
 
 CFLAGS  := -nostdlib -nostartfiles -ffreestanding -mfloat-abi=soft \
            -march=armv6k -O2 -Wall
-ASFLAGS := $(CFLAGS)
+# -Wa,-I so .incbin "forth/core.fth" resolves (cpp temp files break relative paths)
+ASFLAGS := $(CFLAGS) -Wa,-I$(CURDIR)
 LDFLAGS := -nostdlib -T link.ld
 
 SRC := src/seed.S src/hal-2835.S src/hal-2837.S
@@ -21,7 +22,7 @@ QEMU_PY := python3 tools/qemu-ctl.py
 
 all: kernel.img kernel.elf
 
-kernel.elf: $(OBJ) link.ld
+kernel.elf: $(OBJ) link.ld forth/core.fth
 	$(CROSS)gcc $(CFLAGS) $(LDFLAGS) -o $@ $(OBJ)
 
 kernel.img: kernel.elf

@@ -229,7 +229,7 @@ Tracking table (check off in the PR that completes the milestone):
 | [x] M0 | Build scaffolding + UART boot banner | A | - | `make test` M0 transcript |
 | [x] M1 | Seed machine setup + IO-BASE + seed REPL | A | M0 | `make test` M1 |
 | [x] M2 | Seed stack/arith/memory word set | A | M1 | `make test` t-core part 1 |
-| [ ] M3 | Branch words + embedded core + compiler (`:` `;`) | A | M2 | greet/sq transcript |
+| [x] M3 | Branch words + embedded core + compiler (`:` `;`) | A | M2 | greet/sq transcript |
 | [ ] M4 | QUIT/QUERY console discipline + console words | B | M3 | `make test` t-core part 2 |
 | [ ] M5 | Control-flow words | B | M4 | `make test` t-core part 3 |
 | [ ] M6 | `words` / `see` / `forget` / `marker` | B | M5 | `make test` t-core part 4 |
@@ -276,10 +276,18 @@ Per-milestone definition (artifacts / behavior / acceptance):
   `10 3 /mod . .` -> `31 ok` (quot 3, rem 1; `.` prints no trailing space and the
   line suffix is ` ok`), `42 here ! here @ .` -> `42 ok`, `-10 3 /mod . .` ->
   `-3-1 ok`, `1 2 3 rot . . .` -> `132 ok`.
-- **M3 Compiler bootstrap.** Artifacts: `(branch) (0branch) EXIT`, embedded core
-  string in seed interpreted at `cold`, FORTH-written `: ; LITERAL IMMEDIATE CREATE
-  ."`. Acceptance: `: sq dup * ; 7 sq .` -> `49 ok`; `: greet ." Hello, FUNForth" ;
-  greet` -> `Hello, FUNForth ok` (one-space discipline after `ok`).
+- **M3 Compiler bootstrap.** Artifacts: `(branch) (0branch) EXIT LIT` seed words,
+  `DOCOL`/`DOCON` threaded-code entries, `execute_xt` trampoline (W=xt set before
+  cfa; lr saved in a memory cell because r13/sp is shared with the Forth return
+  stack), compile-mode `INTERPRET` (numbers compile as `LIT <n>`, non-immediate
+  words append their xt, immediate words execute), seeded compiler words `: ; ."
+  LITERAL IMMEDIATE CREATE WORD` (`;`/`."`/`LITERAL` immediate), header layout
+  `link|cfa|flags|len|name|pad`, and `forth/core.fth` embedded via `.incbin` and
+  interpreted at `cold` (`: 2dup over over ;` proves the compiler). `\."` compiles
+  `( ." addr len` with the string embedded in the body; its runtime skips the
+  string in the IP stream. Acceptance (`test/all.fth` golden, `make test`):
+  `: sq dup * ; 7 sq .` -> `49 ok`; `: greet ." Hello, FUNForth" ; greet` ->
+  `Hello, FUNForth ok`; `1 2 2dup . . . .` -> `2121 ok` (2dup from embedded core).
 - **M4 Console discipline.** Artifacts: `QUIT QUERY INTERPRET err` with 128-char line
   buffer, backspace handling, 8-line history ring; console words `emit key key? cr
   space type expect span accept` via per-task console vector (`console-uart`);

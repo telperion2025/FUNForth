@@ -20,3 +20,8 @@ foobar
 999 here w! here w@ .
 here 100 + 7 over +! here 100 + @ .
 here 3 65 fill here c@ . here 2 + c@ .
+: sq dup * ;
+7 sq .
+: greet ." Hello, FUNForth" ;
+greet
+1 2 2dup . . . .

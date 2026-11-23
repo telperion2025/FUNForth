@@ -42,4 +42,14 @@ ok> here 100 + 7 over +! here 100 + @ .
 7 ok
 ok> here 3 65 fill here c@ . here 2 + c@ .
 6565 ok
-ok>
+ok> : sq dup * ;
+ ok
+ok> 7 sq .
+49 ok
+ok> : greet ." Hello, FUNForth" ;
+ ok
+ok> greet
+Hello, FUNForth ok
+ok> 1 2 2dup . . . .
+2121 ok
+ok> 

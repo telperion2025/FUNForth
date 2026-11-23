@@ -87,6 +87,7 @@ zb: cmp     r0, r1
     b       zb
 zb_done:
     b       cold_code
+    .ltorg
 
     .section .text
     .global vector_slab
@@ -112,6 +113,8 @@ abort_handler:
 next:
     ldr     r11, [r10], #4
     ldr     pc, [r11, #4]
+
+    .ltorg
 
 @ ---------------------------------------------------------------- dictionary
 .macro defword label, name, flags=0
@@ -207,6 +210,7 @@ print_dec:
     mov     r0, r3
     bl      print_str
     pop     {pc}
+    .ltorg
 
 @ print_hex ( r0 -- ) : 8 hex digits; clobbers r0,r3,r12 (+r1,r2 via emit_char)
     .global print_hex
@@ -296,6 +300,7 @@ uart_init:
     orr     r1, r1, #1
     str     r1, [r0, #0x30]             @ CR: UART|TX|RX
     bx      lr
+    .ltorg
 
 @ ---------------------------------------------------------------- REPL
 @ query ( -- ) : read a line into tib with echo + backspace; sets tib_len
@@ -339,6 +344,7 @@ query:
     ldr     r0, =tib_len
     str     r5, [r0]
     pop     {pc}
+    .ltorg
 
 @ number_q ( r0 = token, r1 = len -- r0 = value, r1 = 1 valid / 0 invalid )
 @ Valid iff the token is an optional '-' followed by >=1 digits, nothing else.
@@ -385,6 +391,7 @@ number_q:
     mov     r1, #0
     add     sp, sp, #8
     pop     {pc}
+    .ltorg
 
 @ find ( r0 = token, r1 = len -- r0 = xt | 0 ) ; preserves r5, r8.
 @ r3 holds len for the whole walk (never clobbered by memcmp).
@@ -415,6 +422,7 @@ find:
     b       1b
 8:  mov     r0, #0
     pop     {r5, r8, pc}
+    .ltorg
 
 @ execute_xt ( r0 = xt -- ) : run a code word via NEXT + trampoline.
 @ lr is saved in a memory cell (sp/r13 is shared with the Forth return stack,
@@ -428,15 +436,23 @@ execute_xt:
     ldr     r10, =exec_cell
     ldr     r11, =tramp_hdr
     str     r11, [r10]
+    mov     r11, r0                     @ W = xt (NEXT sets W before jumping to cfa)
     blx     r12
     bx      lr
+    .ltorg
 
-@ interpret ( -- ) : interpret tib; r5 = cursor, r8 = token end (both preserved
-@ by callees). Unknown word: print "-? <tok>" and abort the line. `\` skips line.
+@ interpret ( r0 = buffer -- ) : interpret NUL-terminated buffer. r5 = cursor,
+@ reloaded from in_ptr after each word so that : / ." can advance it. r8 = state
+@ (0 interpreting, 1 compiling) — preserved by callees, set by : and ;.
+@ In compile mode: numbers compile as lit <n>; non-immediate words append their
+@ xt; immediate words execute. Unknown word: print "-? <tok>", reset state, abort.
+@ '\' skips to end of line. \n \r are whitespace.
     .global interpret
 interpret:
     push    {lr}
-    ldr     r5, =tib                    @ cursor
+    mov     r5, r0
+    ldr     r0, =in_ptr
+    str     r5, [r0]
 iloop:
     ldrb    r1, [r5]
     cmp     r1, #0
@@ -445,54 +461,178 @@ iloop:
     beq     iadv
     cmp     r1, #9
     beq     iadv
+    cmp     r1, #0x0A
+    beq     iadv
+    cmp     r1, #0x0D
+    beq     iadv
     b       itok
 iadv:
     add     r5, r5, #1
     b       iloop
 itok:
-    mov     r8, r5                      @ token end
-1:  ldrb    r1, [r8]
+    mov     r3, r5                      @ scan token end
+1:  ldrb    r1, [r3]
     cmp     r1, #0
     beq     2f
     cmp     r1, #0x20
     beq     2f
     cmp     r1, #9
     beq     2f
-    add     r8, r8, #1
+    cmp     r1, #0x0A
+    beq     2f
+    cmp     r1, #0x0D
+    beq     2f
+    add     r3, r3, #1
     b       1b
-2:  ldrb    r1, [r5]
-    cmp     r1, #0x5C                  @ '\' comment: skip rest of line
+2:  ldr     r0, =in_ptr
+    str     r3, [r0]                    @ in_ptr = token end
+    ldrb    r1, [r5]
+    cmp     r1, #0x5C                   @ '\' comment: skip to newline
+    bne     3f
+4:  ldrb    r1, [r5]
+    cmp     r1, #0
     beq     idone
-    mov     r0, r5
-    sub     r1, r8, r5
+    cmp     r1, #0x0A
+    beq     iadv
+    add     r5, r5, #1
+    b       4b
+3:  mov     r0, r5
+    sub     r1, r3, r5
     bl      number_q
     cmp     r1, #1
-    beq     ipush
+    beq     inum
     mov     r0, r5
-    sub     r1, r8, r5
+    ldr     r3, =in_ptr
+    ldr     r3, [r3]                    @ token end (number_q clobbers r3)
+    sub     r1, r3, r5
     bl      find
     cmp     r0, #0
-    bne     iexec
+    bne     ifound
+    mov     r8, #0                      @ err: reset state
     ldr     r0, =str_err                @ "-? "
     bl      print_str
     mov     r0, r5
-    sub     r8, r8, r5                  @ len
-3:  ldrb    r3, [r0], #1
+    ldr     r1, =in_ptr
+    ldr     r1, [r1]
+    sub     r1, r1, r5
+    mov     r12, r1
+5:  ldrb    r3, [r0], #1
     bl      emit_char
-    subs    r8, r8, #1
-    bne     3b
+    subs    r12, r12, #1
+    bne     5b
     b       idone
+ifound:
+    ldrb    r2, [r0, #8]                @ flags
+    cmp     r8, #0                      @ state?
+    beq     iexec
+    tst     r2, #1                      @ immediate?
+    bne     iexec
+    add     r7, r7, #3                  @ compile xt
+    bic     r7, r7, #3
+    str     r0, [r7], #4
+    b       idonext
 iexec:
     bl      execute_xt
-    mov     r5, r8
-    b       iloop
-ipush:
+    b       idonext
+inum:
+    cmp     r8, #0
+    bne     inumc
     sub     r4, r4, #4
     str     r0, [r4]
-    mov     r5, r8
+    b       idonext
+inumc:
+    add     r7, r7, #3                  @ compile lit <n>
+    bic     r7, r7, #3
+    ldr     r1, =lit_hdr
+    str     r1, [r7], #4
+    str     r0, [r7], #4
+idonext:
+    ldr     r0, =in_ptr
+    ldr     r5, [r0]
     b       iloop
 idone:
     pop     {pc}
+    .ltorg
+
+@ parse_name ( -- r0 = wordbuf, r1 = len ) : skip spaces at in_ptr, copy next
+@ token to wordbuf (NUL-terminated), advance in_ptr past the token.
+    .global parse_name
+parse_name:
+    push    {lr}
+    ldr     r2, =in_ptr
+    ldr     r3, [r2]                    @ cursor
+1:  ldrb    r0, [r3]
+    cmp     r0, #0
+    beq     pn_done
+    cmp     r0, #0x20
+    beq     pn_adv
+    cmp     r0, #9
+    beq     pn_adv
+    cmp     r0, #0x0A
+    beq     pn_done
+    cmp     r0, #0x0D
+    beq     pn_done
+    b       pn_tok
+pn_adv:
+    add     r3, r3, #1
+    b       1b
+pn_tok:
+    ldr     r0, =wordbuf
+pn_copy:
+    ldrb    r12, [r3]
+    cmp     r12, #0
+    beq     pn_end
+    cmp     r12, #0x20
+    beq     pn_end
+    cmp     r12, #9
+    beq     pn_end
+    cmp     r12, #0x0A
+    beq     pn_end
+    cmp     r12, #0x0D
+    beq     pn_end
+    strb    r12, [r0], #1
+    add     r3, r3, #1
+    b       pn_copy
+pn_end:
+    mov     r12, #0
+    strb    r12, [r0]
+    str     r3, [r2]                    @ in_ptr = delimiter position
+    ldr     r1, =wordbuf
+    sub     r1, r0, r1                  @ r1 = len
+    ldr     r0, =wordbuf                @ r0 = wordbuf
+    pop     {pc}
+pn_done:
+    ldr     r0, =wordbuf
+    mov     r12, #0
+    strb    r12, [r0]
+    mov     r1, #0
+    pop     {pc}
+    .ltorg
+
+@ docol : colon-definition entry (cfa target). r11 = xt. Push IP, set IP = PFA.
+    .global docol
+docol:
+    sub     r13, r13, #4
+    str     r10, [r13]
+    ldrb    r1, [r11, #9]               @ len
+    add     r10, r11, #10
+    add     r10, r10, r1
+    add     r10, r10, #3
+    bic     r10, r10, #3                @ pfa = align4(hdr + 10 + len)
+    b       next
+
+@ docon : CREATE entry: push PFA address.
+    .global docon
+docon:
+    ldrb    r1, [r11, #9]
+    add     r0, r11, #10
+    add     r0, r0, r1
+    add     r0, r0, #3
+    bic     r0, r0, #3
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+    .ltorg
 
 @ ---------------------------------------------------------------- seed words
 @ Stack convention: r4 = SP, points at the TOS cell ([r4] = TOS); r0-r3, r12 scratch.
@@ -625,9 +765,12 @@ cold_code:
     ldr     r2, =ps0
     str     r1, [r2]
     mov     r4, r1
+    mov     r8, #0                      @ state = interpreting
     bl      uart_init
     ldr     r0, =banner
     bl      print_str
+    ldr     r0, =core_fth
+    bl      interpret                    @ embedded forth/core.fth (test build)
     b       quit_code
 
 defword warm, "warm"
@@ -644,6 +787,7 @@ qloop:
     ldr     r0, =str_prompt             @ "ok> "
     bl      print_str
     bl      query
+    ldr     r0, =tib
     bl      interpret
     ldr     r0, =str_ok                 @ " ok\r\n"
     bl      print_str
@@ -1043,6 +1187,176 @@ move_code:
 2:  add     r4, r4, #12
     b       next
 
+@ ---- M3: threading + compiler bootstrap words ------------------------------
+defword exit, "exit"                    @ ( -- ) (RS: ip --)
+exit_code:
+    ldr     r10, [r13], #4
+    b       next
+
+defword lit, "lit"                      @ ( -- x ) (IP: -- x)
+lit_code:
+    ldr     r0, [r10], #4
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword branch, "(branch)"              @ ( -- ) (IP: -- target)
+branch_code:
+    ldr     r10, [r10]
+    b       next
+
+defword zbranch, "(0branch)"            @ ( flag -- ) branch if flag == 0
+zbranch_code:
+    ldr     r0, [r4], #4
+    cmp     r0, #0
+    beq     1f
+    add     r10, r10, #4
+    b       next
+1:  ldr     r10, [r10]
+    b       next
+
+defword word_w, "word"                   @ ( -- addr ) parse next token to wordbuf
+word_w_code:
+    bl      parse_name
+    ldr     r0, =wordbuf
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+@ header_create ( r0 = name, r1 = len, r2 = cfa ) : emit header at HERE, link to
+@ latest, set latest; advances HERE past name, aligned. Clobbers r0-r3.
+    .global header_create
+header_create:
+    str     r6, [r7]                    @ link = latest
+    str     r2, [r7, #4]                @ cfa
+    mov     r3, #0
+    strb    r3, [r7, #8]                @ flags
+    strb    r1, [r7, #9]                @ len
+    add     r2, r7, #10
+1:  cmp     r1, #0
+    beq     2f
+    ldrb    r3, [r0], #1
+    strb    r3, [r2], #1
+    sub     r1, r1, #1
+    b       1b
+2:  mov     r6, r7                      @ latest = new header
+    mov     r7, r2
+    add     r7, r7, #3
+    bic     r7, r7, #3                  @ HERE = align4(after name)
+    bx      lr
+
+defword colon, ":"                      @ ( -- ) parse name, create colon word, state=1
+colon_code:
+    bl      parse_name
+    ldr     r2, =docol
+    bl      header_create
+    mov     r8, #1
+    b       next
+
+defword semicolon, ";", 1               @ ( -- ) immediate: compile exit, state=0
+semicolon_code:
+    add     r7, r7, #3
+    bic     r7, r7, #3
+    ldr     r0, =exit_hdr
+    str     r0, [r7], #4
+    mov     r8, #0
+    b       next
+
+defword literal, "literal", 1           @ ( x -- ) immediate: compile lit x
+literal_code:
+    ldr     r0, [r4], #4
+    add     r7, r7, #3
+    bic     r7, r7, #3
+    ldr     r1, =lit_hdr
+    str     r1, [r7], #4
+    str     r0, [r7], #4
+    b       next
+
+defword immediate, "immediate"          @ ( -- ) set immediate flag of latest
+immediate_code:
+    ldrb    r0, [r6, #8]
+    orr     r0, r0, #1
+    strb    r0, [r6, #8]
+    b       next
+
+defword create, "create"                @ ( -- ) parse name, create word (cfa=docon)
+create_code:
+    bl      parse_name
+    ldr     r2, =docon
+    bl      header_create
+    b       next
+
+defword dotquote, ".\"", 1              @ ( -- ) immediate: ." string"
+dotquote_code:
+    push    {r5, r8, lr}
+    ldr     r0, =in_ptr
+    ldr     r12, [r0]                   @ cursor
+1:  ldrb    r2, [r12]
+    cmp     r2, #0x20
+    beq     2f
+    cmp     r2, #9
+    beq     2f
+    b       3f
+2:  add     r12, r12, #1
+    b       1b
+3:  mov     r0, r12                     @ string start
+4:  ldrb    r2, [r12]
+    cmp     r2, #0
+    beq     5f
+    cmp     r2, #0x22                   @ '"'
+    beq     5f
+    add     r12, r12, #1
+    b       4b
+5:  sub     r1, r12, r0                 @ len
+    ldrb    r2, [r12]
+    cmp     r2, #0x22
+    bne     6f
+    add     r12, r12, #1                 @ skip closing quote
+6:  ldr     r2, =in_ptr
+    str     r12, [r2]                   @ in_ptr past string
+    cmp     r8, #0                      @ interpreting: print directly
+    bne     dq_compile
+    mov     r12, r1                     @ r12 = len (emit_char clobbers r1)
+7:  cmp     r12, #0
+    beq     dq_done
+    ldrb    r3, [r0], #1
+    bl      emit_char
+    sub     r12, r12, #1
+    b       7b
+dq_compile:
+    add     r7, r7, #3
+    bic     r7, r7, #3
+    ldr     r2, =dotq_rt_hdr
+    str     r2, [r7], #4                @ compile: ." runtime, addr, len
+    add     r2, r7, #8                  @ string follows the addr/len cells
+    str     r2, [r7], #4                @ addr
+    str     r1, [r7], #4                @ len
+    mov     r5, r1                      @ r5 = len (counter)
+8:  cmp     r5, #0
+    beq     dq_done
+    ldrb    r3, [r0], #1
+    strb    r3, [r7], #1
+    sub     r5, r5, #1
+    b       8b
+dq_done:
+    pop     {r5, r8, lr}
+    b       next
+
+defword dotq_rt, "(.\""                 @ runtime of ." : (IP: addr len --)
+dotq_rt_code:
+    ldr     r0, [r10], #4               @ addr
+    ldr     r12, [r10], #4              @ len (emit_char clobbers r1)
+    add     r10, r10, r12               @ skip the string embedded in the body
+    add     r10, r10, #3
+    bic     r10, r10, #3
+1:  cmp     r12, #0
+    beq     2f
+    ldrb    r3, [r0], #1
+    bl      emit_char
+    sub     r12, r12, #1
+    b       1b
+2:  b       next
+
 defword tramp, "tramp"
 tramp_code:
     ldr     r12, =exec_lr
@@ -1050,6 +1364,7 @@ tramp_code:
 
     .set    seed_latest, last_hdr
     .global seed_latest
+    .ltorg
 
     .section .rodata
     .global banner
@@ -1057,6 +1372,12 @@ banner:     .asciz  "FUNForth seed 0.1 "
 str_prompt: .asciz  "ok> "
 str_ok:     .asciz  " ok\r\n"
 str_err:    .asciz  "-? "
+    .align 2
+    .global core_fth
+core_fth:
+    .incbin "forth/core.fth"
+    .byte   0                           @ NUL-terminate for interpret
+core_fth_end:
 
     .section .bss
     .align 2
@@ -1076,3 +1397,7 @@ ps0:        .space  4
 exec_cell:  .space  4
     .global exec_lr
 exec_lr:    .space  4
+    .global in_ptr
+in_ptr:     .space  4
+    .global wordbuf
+wordbuf:    .space  64
