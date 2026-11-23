@@ -635,6 +635,8 @@ key_vec:
     .global err_impl
 err_impl:
     mov     r8, #0
+    ldr     r0, =state_v
+    str     r8, [r0]
     bx      lr
 
     .global interpret
@@ -643,6 +645,8 @@ interpret:
     mov     r5, r0
     ldr     r0, =in_ptr
     str     r5, [r0]
+    ldr     r8, =state_v                @ STATE lives in memory so state ! works
+    ldr     r8, [r8]
 iloop:
     ldrb    r1, [r5]
     cmp     r1, #0
@@ -739,6 +743,8 @@ inumc:
 idonext:
     ldr     r0, =in_ptr
     ldr     r5, [r0]
+    ldr     r8, =state_v
+    ldr     r8, [r8]
     b       iloop
 idone:
     pop     {pc}
@@ -1073,6 +1079,7 @@ defword console_uart, "console-uart"    @ ( -- ) select UART console
 console_uart_code:
     bl      console_uart_impl
     b       next
+    .ltorg
 
 defword io_base, "io-base"
 io_base_code:
@@ -1595,6 +1602,8 @@ colon_code:
     ldr     r2, =docol
     bl      header_create
     mov     r8, #1
+    ldr     r0, =state_v
+    str     r8, [r0]
     b       next
 
 defword semicolon, ";", 1               @ ( -- ) immediate: compile exit, state=0
@@ -1604,6 +1613,8 @@ semicolon_code:
     ldr     r0, =exit_hdr
     str     r0, [r7], #4
     mov     r8, #0
+    ldr     r0, =state_v
+    str     r8, [r0]
     b       next
 
 defword literal, "literal", 1           @ ( x -- ) immediate: compile lit x
@@ -1734,6 +1745,237 @@ tramp_code:
     ldr     r10, [r3]                   @ restore IP saved by execute_xt
     ldr     pc, [r3, #4]                @ return via saved lr
 
+@ ---- M5: compiler-support + control-flow runtime words ---------------------
+defword paren, "(", 1                   @ immediate: skip to ')'
+paren_code:
+    ldr     r0, =in_ptr
+    ldr     r12, [r0]
+1:  ldrb    r2, [r12]
+    cmp     r2, #0
+    beq     2f
+    cmp     r2, #0x29                   @ ')'
+    beq     3f
+    add     r12, r12, #1
+    b       1b
+2:  str     r12, [r0]
+    b       next
+3:  add     r12, r12, #1
+    str     r12, [r0]
+    b       next
+
+defword lbracket, "[", 1                @ ( -- ) immediate: interpret mode
+lbracket_code:
+    mov     r8, #0
+    ldr     r0, =state_v
+    str     r8, [r0]
+    b       next
+
+defword rbracket, "]", 1                @ ( -- ) immediate: compile mode
+rbracket_code:
+    mov     r8, #1
+    ldr     r0, =state_v
+    str     r8, [r0]
+    b       next
+
+defword postpone, "postpone", 1         @ immediate: compile lit <xt> ,
+postpone_code:
+    bl      parse_name
+    bl      find
+    cmp     r0, #0
+    bne     1f
+    bl      err_impl
+    ldr     r0, =str_err
+    bl      print_str
+    ldr     r0, =wordbuf
+    bl      print_str
+    b       next
+1:  add     r7, r7, #3
+    bic     r7, r7, #3
+    ldr     r1, =lit_hdr
+    str     r1, [r7], #4
+    str     r0, [r7], #4
+    ldr     r1, =comma_hdr
+    str     r1, [r7], #4
+    b       next
+
+defword find_w, "find"                  @ ( addr len -- xt flag )
+find_w_code:
+    ldr     r1, [r4], #4
+    ldr     r0, [r4], #4
+    bl      find
+    cmp     r0, #0
+    sub     r4, r4, #4
+    str     r0, [r4]
+    mvnne   r1, #0
+    moveq   r1, #0
+    sub     r4, r4, #4
+    str     r1, [r4]
+    b       next
+
+defword number_w, "number"              @ ( addr len -- n flag )
+number_w_code:
+    ldr     r1, [r4], #4
+    ldr     r0, [r4], #4
+    bl      number_q
+    sub     r4, r4, #4
+    str     r0, [r4]
+    sub     r4, r4, #4
+    str     r1, [r4]
+    b       next
+
+defword execute_w, "execute"            @ ( xt -- )
+execute_w_code:
+    ldr     r0, [r4], #4
+    bl      execute_xt
+    b       next
+
+defword tick, "'"                       @ ( -- xt )
+tick_code:
+    bl      parse_name
+    bl      find
+    cmp     r0, #0
+    bne     1f
+    bl      err_impl
+    ldr     r0, =str_err
+    bl      print_str
+    ldr     r0, =wordbuf
+    bl      print_str
+    mov     r0, #0
+1:  sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword tickb, "[']", 1                 @ immediate: compile lit <xt>
+tickb_code:
+    bl      parse_name
+    bl      find
+    cmp     r0, #0
+    bne     1f
+    bl      err_impl
+    ldr     r0, =str_err
+    bl      print_str
+    ldr     r0, =wordbuf
+    bl      print_str
+    mov     r0, #0
+1:  add     r7, r7, #3
+    bic     r7, r7, #3
+    ldr     r1, =lit_hdr
+    str     r1, [r7], #4
+    str     r0, [r7], #4
+    b       next
+
+defword state_w, "state"                @ ( -- addr ) STATE variable
+state_w_code:
+    ldr     r0, =state_v
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword abort_w, "abort"                @ ( -- ) reset data stack + state
+abort_w_code:
+    ldr     r0, =ps0
+    ldr     r4, [r0]
+    mov     r8, #0
+    ldr     r0, =state_v
+    str     r8, [r0]
+    b       next
+
+defword refill, "refill"                @ ( -- flag ) read a line via QUERY
+refill_code:
+    bl      query
+    mvn     r0, #0
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword boot_msg, "boot-msg"            @ ( -- ) print banner
+boot_msg_code:
+    ldr     r0, =banner
+    bl      print_str
+    b       next
+
+defword do_rt, "(do)"                   @ ( limit index -- ) (R: -- limit index)
+do_rt_code:
+    ldr     r0, [r4], #4                @ index
+    ldr     r1, [r4], #4                @ limit
+    sub     r13, r13, #8
+    str     r1, [r13, #4]
+    str     r0, [r13]
+    add     r10, r10, #4                @ skip the L placeholder cell
+    b       next
+
+defword qdo_rt, "(?do)"                 @ ( limit index -- ) skip loop if equal
+qdo_rt_code:
+    ldr     r0, [r4], #4
+    ldr     r1, [r4], #4
+    cmp     r0, r1
+    beq     1f
+    sub     r13, r13, #8
+    str     r1, [r13, #4]
+    str     r0, [r13]
+    add     r10, r10, #4
+    b       next
+1:  ldr     r10, [r10]                  @ jump to [L] = after loop
+    b       next
+
+defword loop_rt, "(loop)"               @ (R: limit index -- )
+loop_rt_code:
+    ldr     r0, [r13]
+    add     r0, r0, #1
+    ldr     r1, [r13, #4]
+    str     r0, [r13]
+    cmp     r0, r1
+    beq     1f
+    b       next                          @ continue: fall into (branch)
+1:  add     r13, r13, #8
+    add     r10, r10, #8                @ skip (branch) xt + target
+    b       next
+
+defword plusloop_rt, "(+loop)"          @ ( n -- ) (R: limit index -- )
+plusloop_rt_code:
+    ldr     r0, [r4], #4                @ step
+    ldr     r1, [r13]
+    add     r1, r1, r0
+    str     r1, [r13]
+    ldr     r2, [r13, #4]
+    cmp     r0, #0
+    bge     2f
+    cmp     r1, r2
+    blt     1f
+    b       next
+2:  cmp     r1, r2
+    bge     1f
+    b       next
+1:  add     r13, r13, #8
+    add     r10, r10, #8
+    b       next
+
+defword leave_rt, "(leave)"             @ (R: limit index -- ) to after loop
+leave_rt_code:
+    add     r13, r13, #8
+    ldr     r10, [r10]
+    b       next
+
+defword unloop_w, "unloop"              @ (R: limit index -- )
+unloop_w_code:
+    add     r13, r13, #8
+    b       next
+
+defword i_w, "i"                        @ ( -- index ) code word: r@ inside a
+i_w_code:                               @ colon word would read the pushed IP
+    ldr     r0, [r13]
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword j_w, "j"                        @ ( -- outer index ) code word
+j_w_code:
+    ldr     r0, [r13, #8]
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+    .ltorg
+
     .set    seed_latest, last_hdr
     .global seed_latest
     .ltorg
@@ -1758,7 +2000,7 @@ tib:        .space  132
     .global tib_len
 tib_len:    .space  4
     .global numbuf
-numbuf:     .space  16
+numbuf:     .space  20
     .global abort_flag
 abort_flag: .space  4
     .global board_rev
@@ -1793,3 +2035,5 @@ hist_idx:   .space  4
 hist_cnt:   .space  4
     .global hist_view
 hist_view:  .space  4
+    .global state_v
+state_v:    .space  4

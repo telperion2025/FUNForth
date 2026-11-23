@@ -231,7 +231,7 @@ Tracking table (check off in the PR that completes the milestone):
 | [x] M2 | Seed stack/arith/memory word set | A | M1 | `make test` t-core part 1 |
 | [x] M3 | Branch words + embedded core + compiler (`:` `;`) | A | M2 | greet/sq transcript |
 | [x] M4 | QUIT/QUERY console discipline + console words | B | M3 | `make test` t-core part 2 |
-| [ ] M5 | Control-flow words | B | M4 | `make test` t-core part 3 |
+| [x] M5 | Control-flow words | B | M4 | `make test` t-core part 3 |
 | [ ] M6 | `words` / `see` / `forget` / `marker` | B | M5 | `make test` t-core part 4 |
 | [ ] M7 | System timer `micros millis ms tick-start` | C | M4 | t-drivers timer |
 | [ ] M8 | GPIO `pin-mode pin! pin@ pin-pull led!` | C | M7 | t-drivers gpio |
@@ -307,9 +307,24 @@ Per-milestone definition (artifacts / behavior / acceptance):
   `1 . space 2 .` -> `1 2 ok`; `key? .` -> `0 ok`; `16 base ! 255 .` -> `FF ok`;
   `255 u.` -> `FF ok`; `2 base ! 5 .` -> `101 ok`; `-1 u.` -> `4294967295 ok`;
   `here 8 allot here 8 - 5 72 fill here 8 - 5 type` -> `HHHHH ok`.
-- **M5 Control flow.** Artifacts: the v1.0 4.1 word list implemented in `core.fth`.
-  Acceptance: t-core part 3 golden: `5 0 do i . loop` -> `0 1 2 3 4 ok`, recursive
-  fib `10 fib .` -> `55 ok`, `case` example.
+- **M5 Control flow.** Artifacts: the v1.0 4.1 word list. Seed (asm): `postpone [ ]
+  ' ['] find number execute state abort refill boot-msg ( (do) (?do) (loop)
+  (+loop) (leave) unloop i j` (`i`/`j` are code words: `r@` inside a colon word
+  would read the IP pushed by DOCOL). FORTH in `core.fth`: a dedicated control-flow
+  stack (`cfbuf`/`cfsp`; r13 is the Forth return stack and must not hold compile
+  state across immediate words) + `if else then begin until again while repeat do
+  ?do leave loop +loop ?dup case of endof endcase`. `postpone` compiles the triple
+  `lit <xt> ,` so immediate colon words append xts to the word being compiled.
+  Control words are compile-only (standard); tests use `: name ... ; name`.
+  Acceptance (`test/all.fth` golden, `make test`): `: tloop 5 0 do i . loop ; tloop`
+  -> `01234 ok` (`.` prints no trailing space); `10 0 do i . 2 +loop` -> `02468 ok`;
+  `3 0 ?do i . loop` -> `012 ok`; `5 5 ?do i . loop` -> ` ok`;
+  `0 begin dup 3 < while dup . 1+ repeat drop` -> `012 ok`;
+  `3 begin 1 - dup . dup 0= until drop` -> `210 ok`;
+  `: fib dup 2 < if exit then 1 - dup fib swap 1 - fib + ; 10 fib .` -> `55 ok`;
+  `1 case 1 of ." one" endof ." other" endcase` -> `one ok`; same with 3/1/2 ->
+  `other ok`; `5 ?dup . .` -> `55 ok`; `7 ' sq execute .` -> `49 ok`;
+  `: t2 [ 40 2 + ] . ; t2` -> `42 ok`.
 - **M6 Introspection.** Artifacts: `words see forget marker`. Acceptance: `see sq`
   prints the decompiled definition; `words` lists latest first, 8 per line.
 - **M7 System timer.** Artifacts: `drivers/timer.fth` over +0x3000: `micros millis

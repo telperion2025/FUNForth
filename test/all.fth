@@ -39,3 +39,26 @@ key? .
 here 8 allot here 8 - 5 72 fill here 8 - 5 type
 span @ .
 console-uart
+: tloop 5 0 do i . loop ;
+tloop
+: tploop 10 0 do i . 2 +loop ;
+tploop
+: tqdo 3 0 ?do i . loop ;
+tqdo
+: tqdo0 5 5 ?do i . loop ;
+tqdo0
+: twhile 0 begin dup 3 < while dup . 1+ repeat drop ;
+twhile
+: tuntil 3 begin 1 - dup . dup 0= until drop ;
+tuntil
+: fib dup 2 < if exit then 1 - dup fib swap 1 - fib + ;
+10 fib .
+: tcase1 1 case 1 of ." one" endof ." other" endcase ;
+tcase1
+: tcase3 3 case 1 of ." one" endof 2 of ." two" endof ." other" endcase ;
+tcase3
+5 ?dup . .
+0 ?dup .
+7 ' sq execute .
+: t2 [ 40 2 + ] . ;
+t2

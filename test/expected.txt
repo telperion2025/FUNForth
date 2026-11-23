@@ -80,4 +80,50 @@ ok> span @ .
 0 ok
 ok> console-uart
  ok
+ok> : tloop 5 0 do i . loop ;
+ ok
+ok> tloop
+01234 ok
+ok> : tploop 10 0 do i . 2 +loop ;
+ ok
+ok> tploop
+02468 ok
+ok> : tqdo 3 0 ?do i . loop ;
+ ok
+ok> tqdo
+012 ok
+ok> : tqdo0 5 5 ?do i . loop ;
+ ok
+ok> tqdo0
+ ok
+ok> : twhile 0 begin dup 3 < while dup . 1+ repeat drop ;
+ ok
+ok> twhile
+012 ok
+ok> : tuntil 3 begin 1 - dup . dup 0= until drop ;
+ ok
+ok> tuntil
+210 ok
+ok> : fib dup 2 < if exit then 1 - dup fib swap 1 - fib + ;
+ ok
+ok> 10 fib .
+55 ok
+ok> : tcase1 1 case 1 of ." one" endof ." other" endcase ;
+ ok
+ok> tcase1
+one ok
+ok> : tcase3 3 case 1 of ." one" endof 2 of ." two" endof ." other" endcase ;
+ ok
+ok> tcase3
+other ok
+ok> 5 ?dup . .
+55 ok
+ok> 0 ?dup .
+0 ok
+ok> 7 ' sq execute .
+49 ok
+ok> : t2 [ 40 2 + ] . ;
+ ok
+ok> t2
+42 ok
 ok> 
