@@ -13,8 +13,10 @@ import difflib
 import os
 import select
 import shutil
+import socket
 import subprocess
 import sys
+import tempfile
 import time
 
 
@@ -47,43 +49,70 @@ def main():
     ap.add_argument("--script", help="FORTH script piped over the serial console")
     ap.add_argument("--expected", help="golden transcript to diff against")
     ap.add_argument("--run", action="store_true", help="interactive run (stdio passthrough)")
+    ap.add_argument("--wait-for", default="", help="wait for this marker before sending the script")
     ap.add_argument("--timeout", type=float, default=10.0, help="max seconds to capture")
     ap.add_argument("--idle", type=float, default=2.0, help="stop after this many idle seconds")
     args = ap.parse_args()
 
     cmd, env = find_qemu()
-    cmd += ["-M", args.machine, "-kernel", args.kernel,
-            "-serial", "stdio", "-display", "none", "-monitor", "none"]
-
     if args.run:
+        cmd += ["-M", args.machine, "-kernel", args.kernel,
+                "-serial", "stdio", "-display", "none", "-monitor", "none"]
         os.execvpe(cmd[0], cmd, env or os.environ)
+
+    # serial via a unix socket (stdio chardev misbehaves with piped stdin)
+    sock_path = os.path.join(tempfile.mkdtemp(prefix="funforth-"), "serial.sock")
+    cmd += ["-M", args.machine, "-kernel", args.kernel,
+            "-serial", "unix:%s,server" % sock_path,
+            "-display", "none", "-monitor", "none"]
 
     script = b""
     if args.script and os.path.exists(args.script):
         with open(args.script, "rb") as f:
             script = f.read()
 
-    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+    p = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                          stderr=subprocess.PIPE, env=env)
-    try:
-        if script:
-            p.stdin.write(script)
-            p.stdin.flush()
-    except BrokenPipeError:
-        pass
+
+    ser = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    deadline = time.time() + 5
+    while True:
+        try:
+            ser.connect(sock_path)
+            break
+        except OSError:
+            if time.time() > deadline or p.poll() is not None:
+                sys.exit("error: cannot connect to QEMU serial socket")
+            time.sleep(0.05)
 
     out = b""
     start = last = time.time()
-    while True:
-        r, _, _ = select.select([p.stdout], [], [], 0.2)
-        if r:
-            chunk = os.read(p.stdout.fileno(), 4096)
-            if not chunk:
+
+    def pump(duration):
+        nonlocal out, last
+        end = time.time() + duration
+        while time.time() < end:
+            r, _, _ = select.select([ser], [], [], 0.1)
+            if r:
+                chunk = ser.recv(4096)
+                if not chunk:
+                    return False
+                out += chunk
+                last = time.time()
+            if p.poll() is not None:
+                return False
+        return True
+
+    if script and args.wait_for:
+        marker = args.wait_for.encode()
+        while marker not in out:
+            if not pump(0.2) or time.time() - start > args.timeout:
                 break
-            out += chunk
-            last = time.time()
-        if p.poll() is not None:
-            out += p.stdout.read()
+    if script:
+        ser.sendall(script)
+
+    while True:
+        if not pump(0.2):
             break
         if time.time() - start > 1.0 and time.time() - last > args.idle:
             break
@@ -94,6 +123,7 @@ def main():
         p.wait(timeout=3)
     except subprocess.TimeoutExpired:
         p.kill()
+    ser.close()
     transcript = out.decode("utf-8", "replace")
 
     if args.expected:

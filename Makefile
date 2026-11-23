@@ -37,7 +37,7 @@ run: kernel.elf
 	$(QEMU_PY) --run --kernel kernel.elf
 
 test: kernel.elf
-	$(QEMU_PY) --kernel kernel.elf --script test/all.fth --expected test/expected.txt
+	$(QEMU_PY) --kernel kernel.elf --script test/all.fth --wait-for "ok> " --expected test/expected.txt
 
 test-fb test-sd: kernel.img
 	@echo "$@ requires a later milestone (see SPEC.md)" && exit 1

@@ -138,8 +138,14 @@ NEXT:   ldr r11, [r10], #4
         ldr pc, [r11, #4]      @ CFA is: 0 pad, PFA-code addr
 ```
 
-Header per word (at HERE, growing UP): 4-byte link | 1-byte flags | 1-byte name-len |
-name bytes | 4-byte CFA-value. Flags bit0 = immediate, bit1 = smudge.
+Header per word (v2.0 refined layout, implemented in M1; wins over v1.0 prose; at
+HERE, growing UP): **link(4) | cfa(4) | flags(1) | len(1) | name(len) | pad-to-4 |
+PFA**. `xt` = header address; threaded lists contain xts; flags bit0 = immediate,
+bit1 = smudge. Code words end with `b next`. `EXECUTE` (asm helper) saves lr on the
+scratch stack, points r10 at a one-cell list holding the `tramp` word's xt, and
+`blx`s the code field; `tramp` (`pop {pc}`) returns. Stack convention: **r4 points
+at the TOS cell ([r4] = TOS)**; r0-r3/r12 are pure scratch (v1.0's "r0 = TOS cell"
+was revised: the outer interpreter needs r0 as scratch).
 
 ### 3.4 Mandatory seed word set (assembly)
 
@@ -221,7 +227,7 @@ Tracking table (check off in the PR that completes the milestone):
 | # | Milestone | Phase | Depends on | Automated acceptance |
 | --- | --- | --- | --- | --- |
 | [x] M0 | Build scaffolding + UART boot banner | A | - | `make test` M0 transcript |
-| [ ] M1 | Seed machine setup + IO-BASE + seed REPL | A | M0 | `make test` M1 |
+| [x] M1 | Seed machine setup + IO-BASE + seed REPL | A | M0 | `make test` M1 |
 | [ ] M2 | Seed stack/arith/memory word set | A | M1 | `make test` t-core part 1 |
 | [ ] M3 | Branch words + embedded core + compiler (`:` `;`) | A | M2 | greet/sq transcript |
 | [ ] M4 | QUIT/QUERY console discipline + console words | B | M3 | `make test` t-core part 2 |
@@ -260,8 +266,11 @@ Per-milestone definition (artifacts / behavior / acceptance):
   (banner line only).
 - **M1 Seed machine setup + REPL.** Artifacts: ATAGS walk, SoC detect, `hal-2835.S` /
   `hal-2837.S`, words `io-base latest here cold warm`; a minimal seed REPL over UART
-  that parses a number (push) or finds a seed word (execute). Acceptance:
-  `io-base .` prints `20000000 ok` on raspi0; `1 2 +` then `depth .` prints `1 ok`.
+  that parses a number (push) or finds a seed word (execute). Console discipline:
+  banner `FUNForth seed 0.1 ` then prompt `ok> ` per line; after each line ` ok` +
+  CRLF; unknown word prints `-? <word>` and aborts the line. Acceptance (`make test`):
+  `io-base h.` prints `20000000 ok` on raspi0; `1 2 + depth .` prints `1 ok`;
+  `foobar` prints `-? foobar ok`.
 - **M2 Seed word set.** Artifacts: all stack/arith/logic/memory words of 3.4.
   Acceptance: `test/t-core.fth` part 1 golden, e.g. `2 3 + .` -> `5 ok`,
   `10 3 /mod . .` -> `3 1 ok`, `here @ .` runs, `42 here ! here @ .` -> `42 ok`.

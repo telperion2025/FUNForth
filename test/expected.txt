@@ -1,1 +1,7 @@
-FUNForth seed 0.1 ok>
+FUNForth seed 0.1 ok> io-base h.
+20000000 ok
+ok> 1 2 + depth .
+1 ok
+ok> foobar
+-? foobar ok
+ok>
