@@ -243,7 +243,7 @@ Tracking table (check off in the PR that completes the milestone):
 | [x] M14 | 1 kHz tick preemption (`preemptible`) | D | M7, M13 | `make test-preempt` |
 | [x] M15 | `CODE`/`end-code` assembler core | E | M3 | t-asm double/see/error |
 | [x] M16 | Full assembler word set + encoding guards | E | M15 | t-asm full |
-| [ ] M17 | WM core: windows, menu bar, redraw, XOR drag | F | M10 | t-gui scripted |
+| [x] M17 | WM core: windows, menu bar, redraw, XOR drag | F | M10 | t-gui scripted |
 | [ ] M18 | Terminal window in WM + arrow-key fallback | F | M11, M17 | t-gui 3 windows |
 | [ ] M19 | GUI FORm API + hello demo | F | M18 | t-gui demo |
 | [ ] M20 | I2C + SSD1306 OLED console + DS3231 | G | M8 | hardware visual |
@@ -545,10 +545,25 @@ Per-milestone definition (artifacts / behavior / acceptance):
   rotated imm 65280, ldrr, ldm/stm roundtrip, swp, mla/umull, lit,, bkpt/dsb/
   dmb/isb/cpsid/cpsie via see, see eqmov, backward-label loop `down`,
   `-? ops` guard with HERE rollback + neutralized-header execution).
-- **M17 WM core.** Artifacts: `wm.fth` window records (v1.0 10.1 layout), menu bar,
-  `WM_REDRAW` protocol with `begin-redraw ... next-redraw` (`clip> next-redraw`),
-  XOR-outline drag, one WM task owning redraw arbitration. Acceptance: t-gui
-  scripted event test (arrow-key fallback in QEMU).
+- **M17 WM core.** DONE. Artifacts: `wm.fth` (SD, as WM.FTH; not in BOOT.LST, so the
+  M12 boot golden and kernel.img are unchanged; requires fb/font/vdi/tasks loaded).
+  Window record 40 bytes, pool of 8: `+0 link +4 flags(bit0 open) +8 x +12 y +16 w
+  +20 h +24 redraw-xt +28 title-addr +32 title-len +36 close-xt`. List head =
+  bottom, tail = top. Words: `win-new win-open win-close win-top win-x@ win-x!
+  ... win-title! win-redraw!`, `wm-next-focus`, menu bar `menu-bar!` (border line
+  y=15 + open-window titles), redraw protocol `begin-redraw next-redraw ( -- f )`
+  (bottom-to-top: clear window, `wm-chrome` frame+title-bar+title, `clip>` content
+  clip, call redraw-xt) + `clip>` re-assert + `wm-redraw-all` (fb-clear, all
+  windows, menu bar), XOR-outline drag `wm-drag-start/wm-arrow/wm-drag-commit/
+  wm-drag-cancel` (invert-rect outline, 8 px steps), keyboard `wm-key` (TAB cycle
+  focus, `d` start drag, `x` cancel, CR commit, arrows = ESC [ A/B/C/D - the
+  arrow-key fallback for QEMU), one WM task: `1 task: wm-ua` + `wm-start` spawns
+  `wm-loop` (`wm-poll`: pending redraw then `key? key wm-key`). Acceptance:
+  `make test-gui` = transcript golden (test/gui.fth + expected-gui.txt: open two
+  windows, scripted drag of the focused window to (150,100), TAB focus cycle,
+  close + focus fallback) + QMP screendump magic-pixel diff
+  (test/expected-gui-fb.txt: menu border, window outline, title separator,
+  content rect, closed-window area black).
 - **M18 Terminal window.** Artifacts: `term.fth` terminal in a GEM window, cell-snapped
   move/resize, scroll region, close refused on last terminal; own back-buffer, blit
   on redraw. Acceptance: three windows simultaneously, scripted keys + screendump.

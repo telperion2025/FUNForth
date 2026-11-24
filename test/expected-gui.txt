@@ -1,0 +1,77 @@
+FUNForth seed 0.1 ok> \ M17 WM core test: windows, menu bar, redraw protocol, XOR drag, focus cycle
+ ok
+ok> load fb.fth
+ ok
+ok> load font8x16.fth
+ ok
+ok> load vdi.fth
+ ok
+ok> load wm.fth
+ ok
+ok> 640 400 8 fb-alloc .
+1 ok
+ok> fb-clear
+ ok
+ok> wm-init
+ ok
+ok> create win1 0 ,
+ ok
+ok> create win2 0 ,
+ ok
+ok> 200 120 win-new win1 !
+ ok
+ok> word One count win1 @ win-title!
+ ok
+ok> : redraw1 ( win -- ) drop 120 90 60 20 fillrect ;
+ ok
+ok> ['] redraw1 win1 @ win-redraw!
+ ok
+ok> 100 60 win1 @ win-open
+ ok
+ok> win1 @ win-x@ . win1 @ win-y@ .
+100 60 ok
+ok> 150 100 win-new win2 !
+ ok
+ok> word Two count win2 @ win-title!
+ ok
+ok> : redraw2 ( win -- ) drop 168 130 30 30 rect ;
+ ok
+ok> ['] redraw2 win2 @ win-redraw!
+ ok
+ok> 158 108 win2 @ win-open
+ ok
+ok> wm-redraw-all
+ ok
+ok> \ scripted drag of focused win2: 'd' starts XOR outline, arrows move, CR commits
+ ok
+ok> 100 wm-key
+ ok
+ok> 27 wm-key 91 wm-key 68 wm-key
+ ok
+ok> 27 wm-key 91 wm-key 65 wm-key
+ ok
+ok> 13 wm-key
+ ok
+ok> win2 @ win-x@ . win2 @ win-y@ .
+150 100 ok
+ok> win1 @ win-x@ . win1 @ win-y@ .
+100 60 ok
+ok> \ TAB cycles focus to win1
+ ok
+ok> 9 wm-key
+ ok
+ok> wm-focus @ win1 @ = .
+-1 ok
+ok> wm-redraw-all
+ ok
+ok> \ close win1: focus falls back to none
+ ok
+ok> win1 @ win-close
+ ok
+ok> wm-focus @ 0= .
+-1 ok
+ok> wm-redraw-all
+ ok
+ok> ." END-GUI"
+END-GUI ok
+ok>

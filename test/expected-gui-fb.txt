@@ -1,0 +1,26 @@
+# M17 WM screendump magic pixels (640x400 8bpp, final state after test/gui.fth:
+# win2 dragged to (150,100) size 150x100, win1 closed, menu bar drawn)
+# menu bar bottom border y=15
+0 15 FFFFFF
+320 15 FFFFFF
+639 15 FFFFFF
+320 5 000000
+# win2 outline (150,100)-(299,199)
+150 100 FFFFFF
+299 199 FFFFFF
+200 100 FFFFFF
+150 150 FFFFFF
+# win2 title-bar separator y=116
+200 116 FFFFFF
+150 116 FFFFFF
+# win2 content: redraw2 rect (168,130)-(198,160)
+168 130 FFFFFF
+198 160 FFFFFF
+198 130 FFFFFF
+168 160 FFFFFF
+180 140 000000
+# win2 content background
+250 150 000000
+# closed win1 area is black again
+100 60 000000
+200 76 000000
