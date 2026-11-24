@@ -37,7 +37,7 @@ create lm 0 ,       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
 
 : btarget ( a -- t )          \ target of a b/bl cell at a
   dup @ 16777215 and          \ 24-bit offset ( low 24 )
-  dup 8388608 > if 16777216 - then   \ sign-extend when bit23 set ( < not >= )
+  dup 8388608 and if 16777216 - then   \ sign-extend when bit23 set
   2 lshift swap 8 + + ;
 
 : ?n ( n -- )                 \ operand-count guard
@@ -66,7 +66,7 @@ create lm 0 ,       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
 \ ---- rotated immediates (imm32: 8-bit value ror even 0..30) ----
 : ror32 ( n s -- n' )
   dup 0= if drop exit then
-  >r dup r@ lsr swap r> 32 - lshift or ;
+  >r dup r@ rshift swap r> 32 - lshift or ;
 : ?imm32 ( n -- op2 )
   dup 0< if ." -? imm " asm-abort then
   16 0 do
@@ -242,11 +242,11 @@ create lm 0 ,       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
 \ ---- branches ----
 : b, ( t -- )
   1 ?n here 8 + -
-  dup abs 33554428 > if ." -? branch " asm-abort then
+  dup abs 33554432 > if ." -? branch " asm-abort then
   2 rshift 16777215 and 167772160 or emitc ;
 : bl, ( t -- )
   1 ?n here 8 + -
-  dup abs 33554428 > if ." -? branch " asm-abort then
+  dup abs 33554432 > if ." -? branch " asm-abort then
   2 rshift 16777215 and 184549376 or emitc ;
 : bx, ( p -- ) 1 ?n ?rk 19922704 or emitc ;
 : next ( -- ) nextv @ b, ;       \ branch to the seed NEXT
@@ -307,9 +307,9 @@ create lm 0 ,       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
     ." b " dup btarget h. space 4 + 0 exit then
   ao1 @ 184549376 = if ." bl " dup btarget h. space 4 + 0 exit then
   ci @ 268435216 and 19922704 = if ." bx " ci @ 15 and .reg space 4 + 0 exit then
-  ci @ 268374015 and 93585408 = c2 @ 42221572 = and
+  ci @ 268374015 and 93585408 = c2 @ 268435455 and 42221572 = and
   if ." tos-pop " ci @ 12 rshift 15 and .reg space 8 + 0 exit then
-  ci @ 42221572 = c2 @ 268374015 and 92536832 = and
+  ci @ 268435455 and 38027268 = c2 @ 268374015 and 92536832 = and
   if ." tos-push " c2 @ 12 rshift 15 and .reg space 8 + 0 exit then
   ci @ 201326592 and 67108864 = if            \ word ldr/str (imm or reg off)
     ci @ 1048576 and if ." ldr " else ." str " then

@@ -1788,25 +1788,64 @@ fill_code:
     ldr     r0, [r4]                    @ c
     ldr     r1, [r4, #4]                @ n
     ldr     r2, [r4, #8]                @ a
-1:  cmp     r1, #0
+    cmp     r1, #4
+    blo     3f
+    tst     r2, #3
+    bne     3f
+    orr     r0, r0, r0, lsl #8
+    orr     r0, r0, r0, lsl #16          @ 32-bit pattern c|c<<8|c<<16|c<<24
+    mov     r3, r1, lsr #2
+1:  str     r0, [r2], #4
+    sub     r3, r3, #1
+    cmp     r3, #0
+    bne     1b
+    and     r1, r1, #3
+3:  cmp     r1, #0
     beq     2f
     strb    r0, [r2], #1
     sub     r1, r1, #1
-    b       1b
+    b       3b
 2:  add     r4, r4, #12
     b       next
 
-defword move, "move"                    @ ( src dst n -- ) byte move
+defword move, "move"                    @ ( src dst n -- ) memmove semantics
 move_code:
     ldr     r0, [r4]                    @ n
     ldr     r1, [r4, #4]                @ dst
     ldr     r2, [r4, #8]                @ src
-1:  cmp     r0, #0
+    cmp     r0, #0
+    beq     2f
+    cmp     r1, r2
+    blo     4f                          @ dst < src: forward copy safe
+    add     r3, r2, r0
+    cmp     r1, r3
+    bhs     4f                          @ dst >= src+n: no overlap
+    sub     r0, r0, #1                  @ overlap with dst>src: copy backward
+3:  ldrb    r3, [r2, r0]
+    strb    r3, [r1, r0]
+    sub     r0, r0, #1
+    cmp     r0, #0
+    bne     3b
+    b       2f
+4:  cmp     r0, #4
+    blo     6f
+    tst     r1, #3
+    bne     6f
+    tst     r2, #3
+    bne     6f
+    mov     r3, r0, lsr #2              @ word-wise fast path (no overlap here)
+5:  ldr     r12, [r2], #4
+    str     r12, [r1], #4
+    sub     r3, r3, #1
+    cmp     r3, #0
+    bne     5b
+    and     r0, r0, #3
+6:  cmp     r0, #0
     beq     2f
     ldrb    r3, [r2], #1
     strb    r3, [r1], #1
     sub     r0, r0, #1
-    b       1b
+    b       6b
 2:  add     r4, r4, #12
     b       next
 

@@ -57,7 +57,7 @@ create mb-x 0 ,
   ! ;
 : wm-unlink ( win -- )
   wm-list @ over = if @ wm-list ! exit then
-  wm-list @ begin 2dup @ <> while @ repeat nip dup @ swap ! ;
+  wm-list @ begin dup 0= if 2drop exit then 2dup @ <> while @ repeat nip dup @ swap ! ;
 
 : wm-request-redraw ( -- ) 1 wm-redraw-pend ! ;
 
@@ -76,12 +76,20 @@ create mb-x 0 ,
   wm-focus @ @ dup 0= if drop wm-list @ then wm-focus ! ;
 
 \ ---- drawing ----
-: fillrect0 ( x0 y0 x1 y1 -- )    \ black fill (clip-respecting)
+: fillrect0 ( x0 y0 x1 y1 -- )    \ black fill (clip-respecting, 8bpp row fill)
   r-y1 ! r-x1 ! r-y0 ! r-x0 !
   r-y1 @ 1+ r-y0 @ do
-    r-x1 @ 1+ r-x0 @ do
-      i j pixel-clear
-    loop
+    i clip-y0 @ < 0= i clip-y1 @ > 0= and if
+      r-x0 @ clip-x0 @ max f-x0 !
+      r-x1 @ clip-x1 @ min f-x1 !
+      fb-depth @ 8 = if
+        f-x0 @ f-x1 @ > 0= if
+          i fb-pitch @ * fb-addr @ + f-x0 @ + f-x1 @ f-x0 @ - 1+ 0 fill
+        then
+      else
+        r-x1 @ 1+ r-x0 @ do i j pixel-clear loop
+      then
+    then
   loop ;
 
 : wm-chrome ( win -- )            \ clip must be full-screen; draws frame+title

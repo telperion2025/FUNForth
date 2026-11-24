@@ -24,7 +24,9 @@ on both). Dev loop: QEMU-first; hardware runs verify board-specific layers.
    earlier test pass.
 2. Tests are FORTH source checked into `test/`, executed by `make test`, which boots
    the image under QEMU, pipes a test script over the serial console, and compares the
-   transcript with `test/expected.txt`. Get `make test` green before a milestone is
+   transcript with `test/expected.txt`. Host-side checks that need no toolchain:
+   `make test-host` (tools/hosttest.py: Forth lint, Makefile/SD-image verification,
+   fbcheck/mkfont self-tests, assembler golden recomputation). Get `make test` green before a milestone is
    done.
 3. Stack-effect comments are mandatory on every defined word: `( a b -- c )`.
 4. Naming: FORTH words lowercase-hyphenated (`win-open`); code-words in caps (`NEXT`,

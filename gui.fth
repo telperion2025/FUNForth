@@ -9,6 +9,7 @@
 create ev-queue 256 allot
 create ev-head 0 , create ev-tail 0 ,
 : ev-push ( key x y type -- )
+  ev-tail @ 1+ 16 mod ev-head @ = if 2drop 2drop exit then   \ queue full: drop event
   ev-tail @ 16 * ev-queue + >r
   r@ 12 + ! r@ 8 + ! r@ 4 + ! r@ !
   ev-tail @ 1+ 16 mod ev-tail ! ;
