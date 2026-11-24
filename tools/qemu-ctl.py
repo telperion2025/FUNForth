@@ -67,7 +67,7 @@ def main():
     tmpdir = tempfile.mkdtemp(prefix="funforth-")
     sock_path = os.path.join(tmpdir, "serial.sock")
     cmd += ["-M", args.machine, "-kernel", args.kernel] + sd + [
-            "-serial", "unix:%s,server=on,wait=off" % sock_path,
+            "-serial", "unix:%s,server=on,wait=on" % sock_path,
             "-display", "none", "-monitor", "none"]
     qmp_path = os.path.join(tmpdir, "qmp.sock")
     if args.screendump:
