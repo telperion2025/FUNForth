@@ -240,7 +240,7 @@ Tracking table (check off in the PR that completes the milestone):
 | [x] M11 | `console-fb` 80x25 grid + cursor blink | C | M10 | `make test-fb` text diff |
 | [x] M12 | SD (Arasan SDHCI) + FAT32 RO + `boot.lst`/`load` | C | M4 | `make test-sd` checksum |
 | [x] M13 | Task ring + PAUSE + `task: spawn wake kill halt tasks` | D | M4 | `make test-tasks` |
-| [ ] M14 | 1 kHz tick preemption (`preemptible`) | D | M7, M13 | t-tasks preempt |
+| [x] M14 | 1 kHz tick preemption (`preemptible`) | D | M7, M13 | `make test-preempt` |
 | [ ] M15 | `CODE`/`end-code` assembler core | E | M3 | t-asm double/see/error |
 | [ ] M16 | Full assembler word set + encoding guards | E | M15 | t-asm full |
 | [ ] M17 | WM core: windows, menu bar, redraw, XOR drag | F | M10 | t-gui scripted |
@@ -461,10 +461,24 @@ Per-milestone definition (artifacts / behavior / acceptance):
   `1 0 <xt> 0` killed / `2 0 <xt> 0` halted), shell stays responsive
   (`END-TASKS`). `make test`/`test-sd`/`test-fb`/`test-tasks` all green from
   clean; kernel.img 14760 B / 16 KB.
-- **M14 Tick preemption.** Artifacts: 1 kHz tick counts quanta; at 20 over-quanta,
-  if `up-attr` preempt bit set, `up-force-pause`; PAUSE checkpoint at branch targets.
-  Acceptance: an infinite-loop task stops a blinking-LED task; marking the shell
-  `preemptible` recovers responsiveness within ~20 ms (t-tasks preempt test).
+- **M14 Tick preemption.** DONE. Artifacts: seed asm `tick-ckpt` (compiled by the
+  compiler at every loop target: `begin`/`do`/`?do` in core.fth now emit
+  `postpone tick-ckpt` at the branch-target cell) — polls SYSTIMER CS.M1 (+0x3000,
+  compare C1 +0x3010) plus a `tick-force` test hook; on each tick clears M1, re-arms
+  C1 = CLO+1000 (1 kHz), counts `quanta`; at 20 quanta, if the current task's
+  `up-attr` bit0 (preemptible, set by `preemptible`; shell gets it from
+  `tasks_init` per the halo rule) -> reset quanta, `preempts++`, tail-call the M13
+  `pause` context switch. Words: `tick-ckpt quanta preempts tick-force preemptible`.
+  Preemption happens only at Forth word boundaries (loop heads), never inside a
+  code word. Acceptance: `make test-preempt` (test/preempt.fth + expected-
+  preempt.txt): a spawned task and the shell; `19 quanta ! tick-force` then a
+  5-iteration loop preempts the shell exactly once mid-loop (task prints one `B`,
+  `preempts @ .` -> 1); then real `tick-start` + `55 ms` yields exactly 2 more
+  20-quanta preemptions (`preempts @ .` -> 3, ~20 ms recovery window); `tasks`
+  table; `END-PREEMPT`. Note: M7's `tick-start 5 ms tick? .` golden now reads 0
+  because the `ms` loop's checkpoint consumes the tick (re-armed, counted).
+  `make test`/`test-sd`/`test-fb`/`test-tasks`/`test-preempt` all green from clean;
+  kernel.img 15200 B / 16 KB.
 - **M15 Assembler core.** Artifacts: `forth/asm.fth` `CODE ... end-code`, data ops
   (`mov, add, sub, ...`), `b bl bx`, labels `:<name>` / `<name> b,`, `next`,
   `rpush/rpop/tos-push`. Acceptance: `code double 2* next end-code` (via asm words)

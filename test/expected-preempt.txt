@@ -1,0 +1,41 @@
+FUNForth seed 0.1 ok> \ M14 t-tasks preempt: the (preemptible) shell is preempted mid-loop by the
+ ok
+ok> \ 1 kHz tick checkpoint; a forced tick makes it deterministic (exactly one
+ ok
+ok> \ preemption -> exactly one B from the other task). Then the real tick is
+ ok
+ok> \ verified: tick-start arms C1, 50 ms later tick? is true.
+ ok
+ok> 256 task: t1
+ ok
+ok> : job1 4 0 do ." B" pause loop halt ;
+ ok
+ok> ' job1 t1 @ spawn
+ ok
+ok> preemptible
+ ok
+ok> 0 preempts !
+ ok
+ok> : spin 5 0 do loop ;
+ ok
+ok> 19 quanta ! tick-force
+ ok
+ok> spin
+B ok
+ok> preempts @ .
+1 ok
+ok> t1 @ kill
+ ok
+ok> tick-start
+ ok
+ok> 55 ms
+ ok
+ok> preempts @ .
+3 ok
+ok> tasks
+0 2 0001209C 1
+1 0 00013810 0
+ ok
+ok> ." END-PREEMPT"
+END-PREEMPT ok
+ok>

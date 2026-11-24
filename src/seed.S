@@ -1243,6 +1243,89 @@ up_cur_w_code:
     sub     r4, r4, #4
     str     r0, [r4]
     b       next
+
+@ ---- M14: 1 kHz tick preemption (SYSTIMER C1/CS, polled at branch checkpoints) ----
+defword tick_ckpt, "tick-ckpt"          @ ( -- ) compiled at loop targets: on 20th tick
+tick_ckpt_code:                         @ of a preemptible task, PAUSE (context switch)
+    ldr     r0, =force_tick_v
+    ldr     r0, [r0]                    @ test hook
+    add     r1, r9, #0x3000             @ SYSTIMER CS
+    ldr     r2, [r1]
+    tst     r2, #2                      @ M1 match?
+    movne   r0, #1
+    cmp     r0, #0
+    beq     3f                          @ no tick pending
+    mov     r3, #0
+    ldr     r12, =force_tick_v
+    str     r3, [r12]                   @ clear force
+    tst     r2, #2
+    beq     1f
+    mov     r3, #2
+    str     r3, [r1]                    @ clear CS.M1
+    add     r1, r9, #0x3000
+    add     r1, r1, #4                  @ CLO (+0x3004)
+    ldr     r3, [r1]
+    add     r3, r3, #1000
+    add     r1, r1, #12                 @ C1 (+0x3010)
+    str     r3, [r1]                    @ re-arm 1 kHz compare
+1:  ldr     r0, =quanta_v
+    ldr     r1, [r0]
+    add     r1, r1, #1
+    str     r1, [r0]                    @ quanta++
+    cmp     r1, #20
+    blo     3f
+    ldr     r0, =up_cur
+    ldr     r0, [r0]
+    ldr     r1, [r0, #28]               @ up-attr
+    tst     r1, #1                      @ preemptible bit0?
+    beq     2f
+    mov     r1, #0
+    ldr     r0, =quanta_v
+    str     r1, [r0]                    @ quanta = 0
+    ldr     r0, =preempts_v
+    ldr     r1, [r0]
+    add     r1, r1, #1
+    str     r1, [r0]                    @ preempts++
+    b       pause_code                  @ context switch now
+2:  mov     r1, #0
+    ldr     r0, =quanta_v
+    str     r1, [r0]
+3:  b       next
+
+defword quanta_w, "quanta"              @ ( -- addr ) tick quanta variable
+quanta_w_code:
+    ldr     r0, =quanta_v
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword preempts_w, "preempts"          @ ( -- addr ) preemption counter variable
+preempts_w_code:
+    ldr     r0, =preempts_v
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword tick_force, "tick-force"        @ ( -- ) force one checkpoint tick, disarm C1
+tick_force_code:
+    ldr     r0, =force_tick_v
+    mov     r1, #1
+    str     r1, [r0]
+    add     r1, r9, #0x3000
+    add     r1, r1, #16                 @ C1 (+0x3010) = far future (disarm real tick)
+    mov     r0, #0
+    subs    r0, r0, #1
+    str     r0, [r1]
+    b       next
+
+defword preemptible, "preemptible"      @ ( -- ) set preempt bit of current task
+preemptible_code:
+    ldr     r0, =up_cur
+    ldr     r0, [r0]
+    ldr     r1, [r0, #28]
+    orr     r1, r1, #1
+    str     r1, [r0, #28]
+    b       next
     .ltorg
 
 defword io_base, "io-base"
@@ -2302,6 +2385,12 @@ exec_base_v: .space 4                  @ current task's exec_stack base (M13)
 task_table: .space  64*96               @ M13: 64 user areas x 96 bytes
     .global up_cur
 up_cur:     .space  4                   @ M13: current task's user area
+    .global quanta_v
+quanta_v:   .space  4                   @ M14: tick quanta of running task
+    .global preempts_v
+preempts_v: .space  4                   @ M14: preemption counter
+    .global force_tick_v
+force_tick_v: .space 4                  @ M14: test hook: force one tick
     .global in_ptr
 in_ptr:     .space  4
     .global inptr_sp

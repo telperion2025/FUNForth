@@ -80,7 +80,10 @@ test-fb: kernel.elf build/sd.img
 test-tasks: kernel.elf build/sd.img
 	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/tasks.fth --wait-for "ok> " --expected test/expected-tasks.txt
 
+test-preempt: kernel.elf build/sd.img
+	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/preempt.fth --wait-for "ok> " --expected test/expected-preempt.txt
+
 clean:
 	rm -rf build $(OBJ) kernel.elf kernel.img
 
-.PHONY: all run test test-fb test-sd test-tasks clean
+.PHONY: all run test test-fb test-sd test-tasks test-preempt clean

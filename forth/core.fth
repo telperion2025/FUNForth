@@ -24,7 +24,7 @@ create cfsp 0 ,
 : else postpone (branch) here 0 , cfpop here swap ! cfpush ; immediate
 : then cfpop here swap ! ; immediate
 
-: begin here cfpush ; immediate
+: begin here cfpush postpone tick-ckpt ; immediate   \ M14: checkpoint at loop head
 : until postpone (0branch) here 0 , cfpop swap ! ; immediate
 : again postpone (branch) here 0 , cfpop swap ! ; immediate
 : while postpone (0branch) here 0 , cfpush ; immediate
@@ -36,8 +36,8 @@ create leavesp 0 ,
 : lpop ( -- x ) leavesp @ 1- dup leavesp ! 2 lshift leavebuf + @ ;
 : ldepth ( -- n ) leavesp @ ;
 : patchleaves ( -- ) ldepth 0> if lpop here swap ! patchleaves then ;
-: do  postpone (do) here 0 , cfpush here cfpush ; immediate
-: ?do postpone (?do) here 0 , cfpush here cfpush ; immediate
+: do  postpone (do) here 0 , cfpush here cfpush postpone tick-ckpt ; immediate
+: ?do postpone (?do) here 0 , cfpush here cfpush postpone tick-ckpt ; immediate
 : leave postpone (leave) here 0 , lpush ; immediate
 : loop postpone (loop) postpone (branch) here 0 , patchleaves cfpop swap ! cfpop here swap ! ; immediate
 : +loop postpone (+loop) postpone (branch) here 0 , patchleaves cfpop swap ! cfpop here swap ! ; immediate
