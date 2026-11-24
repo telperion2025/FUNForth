@@ -20,8 +20,8 @@ on both). Dev loop: QEMU-first; hardware runs verify board-specific layers.
 
 ## 0. Conventions for the coding agent
 
-1. One milestone = one branch = one PR. Do not implement later milestones to make
-   an earlier test pass.
+1. One milestone = one branch = one PR. Do not implement later milestones to make an
+   earlier test pass.
 2. Tests are FORTH source checked into `test/`, executed by `make test`, which boots
    the image under QEMU, pipes a test script over the serial console, and compares the
    transcript with `test/expected.txt`. Get `make test` green before a milestone is
@@ -81,7 +81,7 @@ gpu_mem=16
 disable_commandline_tags=0   # keep the ATAGS/DTB pointer in r2 at entry
 ```
 
-Build outputs: `kernel.img` (raw at 0x8000), plus `kernel.elf` kept for objcopy audits.
+Build outputs: `kernel.img` (raw at 0x8000), plus `kernel.elf` kept for objdump audits.
 
 ## 2. Memory map (authoritative)
 

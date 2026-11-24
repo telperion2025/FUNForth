@@ -260,7 +260,7 @@ create nextv 0 ,    \ address of the seed NEXT (found by next-init)
 \ ---- locate the seed NEXT ( no seed change: scan 'dup''s body ) ----
 : next-init ( -- )
   ['] dup pfa
-  begin dup @ 4278190080 and 3925868544 = 0= until
+  begin dup @ 4278190080 and 3925868544 = 0= while 4 + repeat
   btarget nextv ! ;
 
 next-init

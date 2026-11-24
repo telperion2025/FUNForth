@@ -48,7 +48,7 @@ kernel.elf: $(OBJ) link.ld $(EMBED)
 	$(CROSS)gcc $(CFLAGS) $(LDFLAGS) -o $@ $(OBJ)
 
 kernel.img: kernel.elf
-	$(CROSS)objcopy -O binary $@ $@
+	$(CROSS)objcopy -O binary $< $@
 
 %.o: %.S
 	$(CROSS)gcc $(ASFLAGS) -c -o $@ $<
