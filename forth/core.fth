@@ -83,5 +83,5 @@ create casecnt 0 ,
     begin dup @ ['] exit <> while cell. repeat
     drop ." ;" cr
   else
-    ." <code> " dup h. space dup 9 + c@ . cr drop
+    ." <code> " dup 9 + c@ . cr drop
   then ;

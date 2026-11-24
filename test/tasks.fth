@@ -10,5 +10,5 @@
 : drive 16 0 do pause loop ;
 drive
 t1 @ kill
-tasks
+tasks-states
 ." END-TASKS"

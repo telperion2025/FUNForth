@@ -195,7 +195,7 @@ ok> see greet
 greet: Hello, FUNForth ;
  ok
 ok> see dup
-<code> 00008B64 3
+<code> 3
  ok
 ok> marker m1
  ok

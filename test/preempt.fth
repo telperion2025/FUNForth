@@ -15,5 +15,5 @@ t1 @ kill
 tick-start
 55 ms
 preempts @ .
-tasks
+tasks-states
 ." END-PREEMPT"

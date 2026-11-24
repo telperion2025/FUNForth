@@ -33,8 +33,8 @@ ok> 55 ms
 ok> preempts @ .
 3 ok
 ok> tasks
-0 2 0001209C 1
-1 0 00013810 0
+0 2 1
+1 0 0
  ok
 ok> ." END-PREEMPT"
 END-PREEMPT ok

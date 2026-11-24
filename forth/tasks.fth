@@ -52,3 +52,7 @@ create t-slot 0 , create t-base 0 , create t-ps0 0 , create t-rs0 0 , create t-u
   task-cnt @ 0 do
     i . space i up 24 + @ . space i up 20 + @ h. space i up 28 + @ . cr
   loop ;
+: tasks-states ( -- )                           \ #/state/attr (no addresses: stable golden)
+  task-cnt @ 0 do
+    i . space i up 24 + @ . space i up 28 + @ . cr
+  loop ;
