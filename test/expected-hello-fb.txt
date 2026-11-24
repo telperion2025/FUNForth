@@ -1,0 +1,24 @@
+# M19 screendump magic pixels (640x400 8bpp; final state: hello window at
+# (220,100) 200x150 with HELLO text and COUNT button; w2 closed; menu bar)
+# menu bar border y=15
+100 15 FFFFFF
+320 15 FFFFFF
+320 5 000000
+# hello window outline (220,100)-(419,249)
+220 100 FFFFFF
+419 249 FFFFFF
+300 100 FFFFFF
+220 170 FFFFFF
+# title-bar separator y=116
+300 116 FFFFFF
+# "Hello" text at (230,126): H stroke row 6 / gap row 14
+232 132 FFFFFF
+232 140 000000
+# COUNT button rect (230,156)-(309,179)
+230 156 FFFFFF
+309 179 FFFFFF
+270 156 FFFFFF
+# content background
+400 200 000000
+# closed w2 area is black
+60 40 000000

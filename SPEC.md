@@ -245,7 +245,7 @@ Tracking table (check off in the PR that completes the milestone):
 | [x] M16 | Full assembler word set + encoding guards | E | M15 | t-asm full |
 | [x] M17 | WM core: windows, menu bar, redraw, XOR drag | F | M10 | t-gui scripted |
 | [x] M18 | Terminal window in WM + arrow-key fallback | F | M11, M17 | t-gui 3 windows |
-| [ ] M19 | GUI FORm API + hello demo | F | M18 | t-gui demo |
+| [x] M19 | GUI FORm API + hello demo | F | M18 | t-gui demo |
 | [ ] M20 | I2C + SSD1306 OLED console + DS3231 | G | M8 | hardware visual |
 | [ ] M21 | USB HID keyboard/mouse | G | M4 | report-vector unit test |
 | [ ] M22 | SMP worker cores (3A+) | G | M13 | t-smp (hw or raspi3ap) |
@@ -583,11 +583,25 @@ Per-milestone definition (artifacts / behavior / acceptance):
   to (328,32), resize to 72x80, close t1/t2 ok, t3 refused) + screendump magic-pixel
   diff (expected-term-fb.txt: menu border, t3 outline/separator, H/I glyph pixels
   from font8x16, closed areas black).
-- **M19 GUI API + demo.** Artifacts: `gui.fth` FORm API (v1.0 10.3:
-  `needs gui win-new win-open win-close win-top win-full menu-bar! event? event@
-  clip> next-redraw wtext button pointer-x pointer-y buttons`), demo `hello.fth`
-  (200x150 window, close box, counter button). Acceptance: scripted mouse events
-  (arrow-key fallback in QEMU), counter increments, close box works.
+- **M19 GUI API + demo.** DONE. Artifacts: `gui.fth` (SD, as GUI.FTH; kernel.img
+  unchanged; needs fb/font/vdi/wm) + `hello.fth` demo (SD, as HELLO.FTH). FORm API:
+  `needs` (load-file if word not found), event queue 16x4 (`ev-push`, `event?`,
+  `event@ ( -- key x y type )`, types 1=key 2=move 3=press 4=release), pointer
+  state `pointer-x pointer-y buttons`, `win-full` (maximize/restore, saved in
+  full-save[]), `wtext ( addr len x y -- )` (text relative to focused window
+  content), `button ( addr len x y w h xt -- )` (draws + registers a click region
+  in the focused window), close box = top-right 16x16 of the title bar, dispatcher
+  `gui-poll` (key->wm-key, move->pointer, press->close-box/buttons hit test via
+  `win-at`/`in-rect?`, release->buttons=0); `wm-poll` redefined to drain events too,
+  so the single WM task handles keys+events+redraws. Demo `hello`: 200x150 window,
+  "Hello" text + COUNT button (counter-inc prints the counter), close box via
+  title bar. Acceptance: `make test-hello` = transcript golden (test/hello.fth +
+  expected-hello.txt: hello + plain window, 3 scripted button-press events ->
+  counter prints 123, close-box click on the plain window -> only hello remains)
+  + screendump magic-pixel diff (expected-hello-fb.txt: menu border, hello
+  outline/separator, HELLO glyph pixels from font8x16, COUNT button rect,
+  closed window area black). Scripted "mouse" = synthetic `ev-push` events (the
+  arrow-key fallback for real QEMU input is wm-key's ESC[A-D path).
 - **M20 I2C/OLED/RTC.** Artifacts: `drivers/i2c.fth` (`i2c! i2c@`), `ssd1306.fth`
   (128x64 console channel, 21x8 chars at 6x8, `console-oled`), `rtc-ds3231.fth`
   (`time@ time!`). Acceptance: hardware visual (OLED shows prompt); QEMU: words

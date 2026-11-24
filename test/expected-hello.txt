@@ -1,0 +1,73 @@
+FUNForth seed 0.1 ok> \ M19 gui demo test: hello window + plain window, 3 scripted counter clicks,
+ ok
+ok> \ close-box click closes the plain window
+ ok
+ok> load fb.fth
+ ok
+ok> load font8x16.fth
+ ok
+ok> load vdi.fth
+ ok
+ok> load wm.fth
+ ok
+ok> load term.fth
+ ok
+ok> load gui.fth
+ ok
+ok> load hello.fth
+ ok
+ok> 640 400 8 fb-alloc .
+1 ok
+ok> fb-clear
+ ok
+ok> wm-init
+ ok
+ok> create w2 0 ,
+ ok
+ok> 200 120 win-new w2 !
+ ok
+ok> word Plain count w2 @ win-title!
+ ok
+ok> 60 w2 @ win-x! 40 w2 @ win-y!
+ ok
+ok> hello
+ ok
+ok> w2 @ win-open
+ ok
+ok> wm-redraw-all
+ ok
+ok> hello-win @ wm-focus !
+ ok
+ok> \ 3 clicks on the COUNT button (abs rect 230,156 80x24)
+ ok
+ok> 0 250 165 3 ev-push
+ ok
+ok> 0 250 165 4 ev-push
+ ok
+ok> 0 250 165 3 ev-push
+ ok
+ok> 0 250 165 4 ev-push
+ ok
+ok> 0 250 165 3 ev-push
+ ok
+ok> 0 250 165 4 ev-push
+ ok
+ok> gui-poll gui-poll gui-poll gui-poll gui-poll gui-poll
+123 ok
+ok> counter @ .
+3 ok
+ok> \ click w2's close box (w2 at 60,40 200x120 -> box at 244,40 16x16)
+ ok
+ok> 0 250 45 3 ev-push
+ ok
+ok> 0 250 45 4 ev-push
+ ok
+ok> gui-poll gui-poll
+ ok
+ok> hello-win @ wm-list @ = .
+-1 ok
+ok> wm-redraw-all
+ ok
+ok> ." END-HELLO"
+END-HELLO ok
+ok>
