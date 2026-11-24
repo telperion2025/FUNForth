@@ -612,7 +612,8 @@ execute_xt:
     @ so the trampoline state must NOT live on r13); nestable via exec_idx
     ldr     r12, =exec_idx
     ldr     r11, [r12]
-    ldr     r3, =exec_stack
+    ldr     r3, =exec_base_v
+    ldr     r3, [r3]                   @ per-task exec area (M13 PAUSE swaps it)
     add     r3, r3, r11, lsl #3
     str     r10, [r3]                   @ save IP
     str     lr, [r3, #4]                @ save lr
@@ -1147,6 +1148,101 @@ con_keyq_w_code:
     ldr     r1, =con_keyq
     str     r0, [r1]
     b       next
+
+@ ---- M13: cooperative multitasker -----------------------------------------
+@ user area (96 B = 24 cells): 0 task# 1 ps0 2 psp 3 rs0 4 rsp 5 xt(resume IP)
+@ 6 state (0 idle 1 ready 2 run) 7 attr 8 console 9 spawn-cell 10 r5save
+@ 11 execidx 12 stsave(r8) 13 inptr 14 execbase 15-23 free
+@ tasks_init : slot0 = interactive shell (state run, attr preemptible bit0)
+    .global tasks_init
+tasks_init:
+    ldr     r0, =task_table
+    ldr     r1, =up_cur
+    str     r0, [r1]                    @ up_cur = &slot0
+    mov     r1, #0
+    str     r1, [r0]                    @ task# = 0
+    ldr     r1, =ps0
+    ldr     r1, [r1]
+    str     r1, [r0, #4]                @ up-ps0
+    str     r4, [r0, #8]                @ up-psp = current r4
+    str     r13, [r0, #12]              @ up-rs0 = current r13 (top-of-RAM-4K)
+    str     r13, [r0, #16]              @ up-rsp
+    mov     r1, #2
+    str     r1, [r0, #24]               @ state = run
+    mov     r1, #1
+    str     r1, [r0, #28]               @ attr = preemptible (halo rule)
+    ldr     r1, =exec_stack
+    str     r1, [r0, #56]              @ exec_base = boot exec area
+    mov     r1, #0
+    str     r1, [r0, #44]               @ exec_idx = 0
+    ldr     r1, =exec_base_v
+    ldr     r2, =exec_stack
+    str     r2, [r1]
+    bx      lr
+
+defword pause, "pause"                  @ ( -- ) save ctx, switch to next ready|run task
+pause_code:
+    ldr     r0, =up_cur
+    ldr     r0, [r0]                    @ r0 = cur up
+    str     r4,  [r0, #8]               @ up-psp
+    str     r13, [r0, #16]              @ up-rsp
+    str     r10, [r0, #20]              @ up-xt = resume IP
+    str     r5,  [r0, #40]              @ r5 save
+    str     r8,  [r0, #48]              @ state reg save
+    ldr     r1, =in_ptr
+    ldr     r1, [r1]
+    str     r1, [r0, #52]              @ in_ptr save
+    ldr     r1, =exec_idx
+    ldr     r1, [r1]
+    str     r1, [r0, #44]              @ exec_idx save
+    ldr     r1, [r0]                    @ cur task#
+    ldr     r2, =task_table
+    mov     r3, #64
+1:  add     r1, r1, #1
+    cmp     r1, #64
+    movge   r1, #0
+    add     r0, r2, r1, lsl #6
+    add     r0, r0, r1, lsl #5          @ r0 = task_table + task#*96
+    ldr     r12, [r0, #24]              @ up-state
+    cmp     r12, #1                     @ ready
+    beq     2f
+    cmp     r12, #2                     @ run
+    beq     2f
+    subs    r3, r3, #1
+    bne     1b
+    b       next                        @ nobody else ready: just return
+2:  ldr     r1, =up_cur
+    str     r0, [r1]                    @ switch
+    ldr     r4,  [r0, #8]
+    ldr     r13, [r0, #16]
+    ldr     r10, [r0, #20]
+    ldr     r5,  [r0, #40]
+    ldr     r8,  [r0, #48]
+    ldr     r1,  [r0, #52]
+    ldr     r2, =in_ptr
+    str     r1, [r2]
+    ldr     r1,  [r0, #44]
+    ldr     r2, =exec_idx
+    str     r1, [r2]
+    ldr     r1,  [r0, #56]
+    ldr     r2, =exec_base_v
+    str     r1, [r2]
+    b       next
+
+defword task_table_w, "task-table"      @ ( -- a ) ring base (64 x 96 B)
+task_table_w_code:
+    ldr     r0, =task_table
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword up_cur_w, "up-cur"              @ ( -- a ) current task's user area
+up_cur_w_code:
+    ldr     r0, =up_cur
+    ldr     r0, [r0]
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
     .ltorg
 
 defword io_base, "io-base"
@@ -1187,6 +1283,7 @@ cold_code:
     mov     r4, r1
     mov     r8, #0                      @ state = interpreting
     bl      console_uart_impl           @ console vectors -> UART
+    bl      tasks_init                  @ M13: slot0 = shell task (run, preemptible)
     ldr     r0, =base_v
     mov     r1, #10
     str     r1, [r0]                    @ BASE = 10
@@ -1834,7 +1931,8 @@ tramp_code:
     ldr     r11, [r12]
     sub     r11, r11, #1
     str     r11, [r12]
-    ldr     r3, =exec_stack
+    ldr     r3, =exec_base_v
+    ldr     r3, [r3]                   @ per-task exec area (M13 PAUSE swaps it)
     add     r3, r3, r11, lsl #3
     ldr     r10, [r3]                   @ restore IP saved by execute_xt
     ldr     pc, [r3, #4]                @ return via saved lr
@@ -2198,6 +2296,12 @@ exec_cell:  .space  4
 exec_stack: .space  512               @ 64 entries of (IP, lr) for execute_xt
     .global exec_idx
 exec_idx:   .space  4
+    .global exec_base_v
+exec_base_v: .space 4                  @ current task's exec_stack base (M13)
+    .global task_table
+task_table: .space  64*96               @ M13: 64 user areas x 96 bytes
+    .global up_cur
+up_cur:     .space  4                   @ M13: current task's user area
     .global in_ptr
 in_ptr:     .space  4
     .global inptr_sp

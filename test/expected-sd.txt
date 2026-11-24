@@ -7,7 +7,7 @@ ok> 0 sdbuf sd-read sdbuf 510 + c@ . sdbuf 511 + c@ .
 ok> file-sum hello.txt .
 5653 ok
 ok> file-sum boot.lst .
-3892 ok
+5268 ok
 ok> load hello.txt
  ok
 ok> hi

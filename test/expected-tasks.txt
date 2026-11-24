@@ -1,0 +1,32 @@
+FUNForth seed 0.1 ok> \ M13 t-tasks: two tasks alternate printing via pause; kill stops one;
+ ok
+ok> \ the shell stays responsive afterwards. Deterministic: each task prints
+ ok
+ok> \ exactly 8 chars then halts; the shell drives exactly 16 pauses.
+ ok
+ok> 256 task: t1
+ ok
+ok> 256 task: t2
+ ok
+ok> : job1 8 0 do ." A" pause loop halt ;
+ ok
+ok> : job2 8 0 do ." B" pause loop halt ;
+ ok
+ok> ' job1 t1 @ spawn
+ ok
+ok> ' job2 t2 @ spawn
+ ok
+ok> : drive 16 0 do pause loop ;
+ ok
+ok> drive
+ABABABABABABABAB ok
+ok> t1 @ kill
+ ok
+ok> tasks
+0 2 00013EE0 1
+1 0 00012BDC 0
+2 0 00012BDC 0
+ ok
+ok> ." END-TASKS"
+END-TASKS ok
+ok>

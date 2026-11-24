@@ -239,7 +239,7 @@ Tracking table (check off in the PR that completes the milestone):
 | [x] M10 | Framebuffer + VDI + font, screendump test | C | M9 | `make test-fb` diff |
 | [x] M11 | `console-fb` 80x25 grid + cursor blink | C | M10 | `make test-fb` text diff |
 | [x] M12 | SD (Arasan SDHCI) + FAT32 RO + `boot.lst`/`load` | C | M4 | `make test-sd` checksum |
-| [ ] M13 | Task ring + PAUSE + `task: spawn wake kill halt tasks` | D | M4 | t-tasks basic |
+| [x] M13 | Task ring + PAUSE + `task: spawn wake kill halt tasks` | D | M4 | `make test-tasks` |
 | [ ] M14 | 1 kHz tick preemption (`preemptible`) | D | M7, M13 | t-tasks preempt |
 | [ ] M15 | `CODE`/`end-code` assembler core | E | M3 | t-asm double/see/error |
 | [ ] M16 | Full assembler word set + encoding guards | E | M15 | t-asm full |
@@ -441,10 +441,26 @@ Per-milestone definition (artifacts / behavior / acceptance):
   Seed fixes this milestone: `allot` and `header_create` keep HERE 4-aligned (odd
   `allot`/`c,` counts corrupted the next header's link -> dictionary cycle);
   `interpret` saves/restores `in_ptr` on a small bss stack so `load` nests.
-- **M13 Multitasker.** Artifacts: `forth/tasks.fth`: 64-slot ring, 96-byte user areas
-  (offsets per v1.0 6), `PAUSE` save/advance/restore, `task: spawn wake kill halt
-  tasks yield sleep ( n -- )`. Acceptance: t-tasks basic: two tasks alternate
-  printing; `kill` stops one, the shell stays responsive.
+- **M13 Multitasker.** DONE. Artifacts: seed asm `pause` (save r4/r13/r10/r5/r8/
+  in_ptr/exec_idx of the current 96-byte user area, scan the 64-slot ring for the
+  next ready|run slot, restore; user-area cells per v1.0 6: 0 task# 1 ps0 2 psp
+  3 rs0 4 rsp 5 xt(resume IP) 6 state 7 attr 8 console 9 spawn-cell 10-13 saved
+  r5/execidx/r8/inptr 14 execbase), `task-table`/`up-cur` accessors, `tasks_init`
+  at cold (slot0 = shell, state run, attr preemptible per halo rule);
+  `exec_stack` is now per-task (`exec_base_v` swapped by PAUSE) so interleaved
+  `execute_xt` nesting cannot collide across tasks. `forth/tasks.fth` (SD:
+  TASKS.FTH, loaded via BOOT.LST): `n task: name` (name @ -> user area; allocates
+  per-task exec area 128 B + PS n cells + RS n cells in the arena),
+  `spawn ( xt up -- )` (xt goes in the spawn cell, stacks reset, state ready;
+  spawned word must loop or end with `halt`), `wake kill halt tasks yield sleep`,
+  `up ( n -- a )`. Blocking key stays UART-blocking in M13 (cooperative yield at
+  explicit `pause`/`sleep`; key-yield is M14 territory). Acceptance:
+  `make test-tasks` (test/tasks.fth + expected-tasks.txt): two spawned tasks
+  print exactly `ABABABABABABABAB` under a 16-pause shell driver then halt,
+  `kill` marks a task idle (`tasks` table shows `0 2 <xt> 1` shell /
+  `1 0 <xt> 0` killed / `2 0 <xt> 0` halted), shell stays responsive
+  (`END-TASKS`). `make test`/`test-sd`/`test-fb`/`test-tasks` all green from
+  clean; kernel.img 14760 B / 16 KB.
 - **M14 Tick preemption.** Artifacts: 1 kHz tick counts quanta; at 20 over-quanta,
   if `up-attr` preempt bit set, `up-force-pause`; PAUSE checkpoint at branch targets.
   Acceptance: an infinite-loop task stops a blinking-LED task; marking the shell
