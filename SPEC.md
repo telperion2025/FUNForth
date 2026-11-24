@@ -242,7 +242,7 @@ Tracking table (check off in the PR that completes the milestone):
 | [x] M13 | Task ring + PAUSE + `task: spawn wake kill halt tasks` | D | M4 | `make test-tasks` |
 | [x] M14 | 1 kHz tick preemption (`preemptible`) | D | M7, M13 | `make test-preempt` |
 | [x] M15 | `CODE`/`end-code` assembler core | E | M3 | t-asm double/see/error |
-| [ ] M16 | Full assembler word set + encoding guards | E | M15 | t-asm full |
+| [x] M16 | Full assembler word set + encoding guards | E | M15 | t-asm full |
 | [ ] M17 | WM core: windows, menu bar, redraw, XOR drag | F | M10 | t-gui scripted |
 | [ ] M18 | Terminal window in WM + arrow-key fallback | F | M11, M17 | t-gui 3 windows |
 | [ ] M19 | GUI FORm API + hello demo | F | M18 | t-gui demo |
@@ -518,12 +518,33 @@ Per-milestone definition (artifacts / behavior / acceptance):
   mov,` -> `-? reg ok` with `hsave @ here = .` -> `-1 ok` (HERE unmoved). `make
   test`/`test-sd`/`test-fb`/`test-tasks`/`test-preempt` goldens unchanged
   (asm.fth is not in BOOT.LST); kernel.img unchanged (15200 B / 16 KB).
-- **M16 Full assembler.** Artifacts: memory ops with all postfix addressing modes,
-  mult/ldm/stm/swp, condition prefixes, `-s` variants, `mrs/msr/bkpt/dsb/dmb/isb/
-  cpsid/cpsie`, literal pool at `end-code`, diagnostic on illegal encodings,
-  assembler encoding guards (operand-count checks), latest! cleanup of aborted
-  headers, remaining-line abort, `:<name>` label token syntax, imm rotation
-  encodings. Acceptance: t-asm full golden.
+- **M16 Full assembler.** DONE. Artifacts (all in `forth/asm.fth`, still SD-only,
+  no seed changes, kernel.img unchanged): condition prefixes `eq ne hs lo mi pl
+  vs vc hi ls ge lt gt le al` (aliases `cs cc`; stored in `ccv`, ORed into the next
+  emitted cell by `emitc`, which resets to AL), `s` flag (S bit on next cell),
+  ldr/str addressing-mode modifiers `neg post wb` (consumed by the next mem op)
+  plus register-offset `ldrr, strr,`, halfword/signed imm8 forms `ldrh, strh,
+  ldrsb, ldrsh,`, `ldm, stm,` ( b mask -- ) with `ia ib da db` modes + writeback,
+  `swp,` ( b r d -- ), `mla, umull, smull,`, `mrs, msr,` (CPSR_f, reg),
+  `bkpt,` ( imm16 ), `dsb, dmb, isb,` (ARMv6 MCR p15 forms), `cpsid, cpsie,`
+  ( AIF mask operand; cond 0xF fixed ), `nop,`, `lit,` inline literal pair,
+  rotated immediates (`?imm32`: 8-bit value ror even 0..30, replaces the M15
+  0..255-only `?imm8`), operand-count guards (`?n` -> `-? ops`), remaining-line
+  abort (`begin word count nip 0= until` before `abort`), aborted-header
+  neutralization, extended cond-agnostic `dis1` (prints cond prefix, ldm/stm
+  modes, swp/mul-family/mrs/msr/bkpt/barriers/cps, halfword/signed, reg-offset
+  ldr/str; also fixes M15's bx mask and cmp opcode 10). `end-code`/`code` now
+  track the word's own xt (`code-xt`) so `label` inside a code body cannot
+  corrupt the patch target. Deltas: (D4) `:<name>` label token syntax still
+  needs a seed tokenizer hook - labels stay `label <name>` + `'<name> mark`
+  (backward-only); (D5) true `latest!` unlink is impossible from Forth (latest
+  lives in r6 with no writer word), so `asm-abort` neutralizes the aborted
+  header by patching its cfa to `abort`'s code address; (D6) "literal pool at
+  end-code" is realized as inline `lit,` pairs. Acceptance: `make test-asm`
+  (test/asm.fth + golden, now covering M15+M16: cond eq mov, s-flag add,
+  rotated imm 65280, ldrr, ldm/stm roundtrip, swp, mla/umull, lit,, bkpt/dsb/
+  dmb/isb/cpsid/cpsie via see, see eqmov, backward-label loop `down`,
+  `-? ops` guard with HERE rollback + neutralized-header execution).
 - **M17 WM core.** Artifacts: `wm.fth` window records (v1.0 10.1 layout), menu bar,
   `WM_REDRAW` protocol with `begin-redraw ... next-redraw` (`clip> next-redraw`),
   XOR-outline drag, one WM task owning redraw arbitration. Acceptance: t-gui

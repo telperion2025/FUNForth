@@ -17,4 +17,39 @@ create hsave 0 ,
 here hsave !
 code bad r0 99 mov,
 hsave @ here = .
+\ M16: cond prefixes, s flag, modes, ldm/stm, swp, mul family, sys, imm32,
+\ guards, header neutralization, labels
+code eqmov r1 tos-pop r2 tos-pop r0 0 # mov, r1 r2 cmp, eq r0 1 # mov, r0 tos-push next end-code
+5 5 eqmov .
+5 6 eqmov .
+code addone r0 tos-pop r0 r0 1 # s add, r0 tos-push next end-code
+41 addone .
+code movrot r0 65280 # mov, r0 tos-push next end-code
+movrot h.
+create cell2 0 ,
+77 cell2 !
+code deref2 r1 0 # mov, r0 tos-pop r0 r1 r0 ldrr, r0 tos-push next end-code
+cell2 deref2 .
+code lsm r1 5 # mov, r13 r1 stm, r13 r1 ldm, r1 tos-push next end-code
+lsm .
+create swp-a 111 ,
+code swpt r0 tos-pop r1 222 # mov, ' swp-a pfa r0 r1 swp, r1 tos-push next end-code
+55 swpt .
+swp-a @ .
+code mlat r0 tos-pop r1 tos-pop r2 tos-pop r3 r0 r2 r1 mla, r3 tos-push next end-code
+3 4 5 mlat .
+code umt r0 tos-pop r1 tos-pop r2 r3 r0 r1 umull, r2 tos-push r3 tos-push next end-code
+6 7 umt . .
+code litw 65280 lit, r0 swap # mov, r0 tos-push next end-code
+litw h.
+code misc 0 bkpt, dsb, dmb, isb, 128 cpsid, 128 cpsie, next end-code
+see misc
+see eqmov
+code down r0 5 # mov, label top ' top mark r0 r0 1 # sub, r0 0 # cmp, ne top b, r0 tos-push next end-code
+down .
+create hsave2 0 ,
+here hsave2 !
+code bad2 r0 mov,
+hsave2 @ here = .
+bad2
 ." END-ASM"
