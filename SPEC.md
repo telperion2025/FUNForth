@@ -20,8 +20,8 @@ on both). Dev loop: QEMU-first; hardware runs verify board-specific layers.
 
 ## 0. Conventions for the coding agent
 
-1. One milestone = one branch = one PR. Do not implement later milestones to make an
-   earlier test pass.
+1. One milestone = one branch = one PR. Do not implement later milestones to make
+   an earlier test pass.
 2. Tests are FORTH source checked into `test/`, executed by `make test`, which boots
    the image under QEMU, pipes a test script over the serial console, and compares the
    transcript with `test/expected.txt`. Get `make test` green before a milestone is
@@ -81,7 +81,7 @@ gpu_mem=16
 disable_commandline_tags=0   # keep the ATAGS/DTB pointer in r2 at entry
 ```
 
-Build outputs: `kernel.img` (raw at 0x8000), plus `kernel.elf` kept for objdump audits.
+Build outputs: `kernel.img` (raw at 0x8000), plus `kernel.elf` kept for objcopy audits.
 
 ## 2. Memory map (authoritative)
 
@@ -241,7 +241,7 @@ Tracking table (check off in the PR that completes the milestone):
 | [x] M12 | SD (Arasan SDHCI) + FAT32 RO + `boot.lst`/`load` | C | M4 | `make test-sd` checksum |
 | [x] M13 | Task ring + PAUSE + `task: spawn wake kill halt tasks` | D | M4 | `make test-tasks` |
 | [x] M14 | 1 kHz tick preemption (`preemptible`) | D | M7, M13 | `make test-preempt` |
-| [ ] M15 | `CODE`/`end-code` assembler core | E | M3 | t-asm double/see/error |
+| [x] M15 | `CODE`/`end-code` assembler core | E | M3 | t-asm double/see/error |
 | [ ] M16 | Full assembler word set + encoding guards | E | M15 | t-asm full |
 | [ ] M17 | WM core: windows, menu bar, redraw, XOR drag | F | M10 | t-gui scripted |
 | [ ] M18 | Terminal window in WM + arrow-key fallback | F | M11, M17 | t-gui 3 windows |
@@ -479,15 +479,51 @@ Per-milestone definition (artifacts / behavior / acceptance):
   because the `ms` loop's checkpoint consumes the tick (re-armed, counted).
   `make test`/`test-sd`/`test-fb`/`test-tasks`/`test-preempt` all green from clean;
   kernel.img 15200 B / 16 KB.
-- **M15 Assembler core.** Artifacts: `forth/asm.fth` `CODE ... end-code`, data ops
-  (`mov, add, sub, ...`), `b bl bx`, labels `:<name>` / `<name> b,`, `next`,
-  `rpush/rpop/tos-push`. Acceptance: `code double 2* next end-code` (via asm words)
-  `21 double .` -> `42 ok`; `see double` prints mnemonics; a bad encoding aborts
-  with an error and does not move HERE.
+- **M15 Assembler core.** DONE. Artifacts: `forth/asm.fth` (SD, as ASM.FTH, loaded
+  by `test/asm.fth` via `load asm.fth` like the M10-M11 drivers; NOT in BOOT.LST so
+  the M12 boot golden is unchanged), no seed changes (NEXT is found at load by
+  scanning `' dup`'s body for its b-to-NEXT: `next-init`). Words: `CODE ... end-code`
+  (`create`-style header; `code-h0` = HERE saved BEFORE create so a failed assembly
+  rolls HERE fully back, `code-b` = PFA; `end-code` patches cfa [xt+4] := body so
+  NEXT jumps into the raw cells), register constants `r0..r15 sp lr pc` (`sp`=13
+  `lr`=14 `pc`=15; plain colon words, no name parsing), `#` flags the number under
+  it (bit 268435456) as an immediate 0..255 (rotated imm encodings are M16),
+  data ops `mov, mvn, add, sub, cmp, and, orr, eor, bic,` (postfix, full operand
+  order `dest a b -- : dest a op2 mov,`), `mul,` (dest a b --),
+  shifts `lsl, lsr, asr,` (dest src amt -- ; imm5), memory `ldr, str,` (base off
+  dest -- ; imm12 offset 0..4095, P=1 U=1), `rpush rpop` (reg -- ; STMDB/LDMIA
+  r13!, single reg), `tos-pop tos-push` (reg -- ; TOS cell <-> reg, two cells:
+  `ldr r,[r4]`/`add r4,r4,#4` and `sub r4,r4,#4`/`str r,[r4]`), branches `b, bl,`
+  (target -- ; PC-relative, +/-32 MB window), `bx,` (reg --), `next` (assembles
+  `b <seed NEXT>`); labels backward-only: `label <name>` (word whose body pushes
+  its marked address: `create` + docol cfa + `[lit][0][exit]`) + `'<name> mark`
+  (binds it to the current assembly position) — the spec's `:<name>` token syntax
+  needs tokenizer/latest! seed hooks and is deferred to M16 with the rest-of-line
+  abort (an in_ptr hook); `see` redefined: code words decompile from PFA via
+  `dis1` until the closing `b next` (b -> bx -> tos-pair -> ldr/str -> rpush/rpop
+  -> mul -> data-imm -> data-reg -> hex `?`), colon words decompile exactly like
+  the core `see`. Errors: every operand is validated BEFORE the cell is written
+  (`-? reg` / `-? imm` / `-? branch` on the console), HERE rolls back to `code-h0`
+  via `allot` and `abort` clears the data stack; the failed word's header stays
+  linked until the next create (harmless; `latest!` cleanup is M16) and the rest of
+  the input line is still interpreted (line abort is M16) — keep the failing
+  mnemonic last on its line. Acceptance: `make test-asm` (test/asm.fth + golden
+  test/expected-asm.txt): `code double r0 tos-pop r0 r0 add, r0 tos-push next
+  end-code` + `21 double .` -> `42 ok`; `forty2` (mov imm) -> `42 ok`; `deref`
+  (ldr [r0]) -> `123 ok`; `rtest` (rpush/rpop) runs clean; `1 2 + .` -> `3 ok`
+  (interpreter undisturbed); `see double` -> `double: <code> tos-pop r0 add r0 r0
+  r0 tos-push r0 b next ;`; `see dup` -> `dup: <code> ldr r0 [r4 0] tos-push r0 b
+  next ;` (greedy token pairing: dup's ldr does NOT pair as tos-pop because it is
+  followed by sub, but the sub+str pair is honestly a tos-push); `code bad r0 99
+  mov,` -> `-? reg ok` with `hsave @ here = .` -> `-1 ok` (HERE unmoved). `make
+  test`/`test-sd`/`test-fb`/`test-tasks`/`test-preempt` goldens unchanged
+  (asm.fth is not in BOOT.LST); kernel.img unchanged (15200 B / 16 KB).
 - **M16 Full assembler.** Artifacts: memory ops with all postfix addressing modes,
   mult/ldm/stm/swp, condition prefixes, `-s` variants, `mrs/msr/bkpt/dsb/dmb/isb/
-  cpsid/cpsie`, literal pool at `end-code`, diagnostic on illegal encodings.
-  Acceptance: t-asm full golden.
+  cpsid/cpsie`, literal pool at `end-code`, diagnostic on illegal encodings,
+  assembler encoding guards (operand-count checks), latest! cleanup of aborted
+  headers, remaining-line abort, `:<name>` label token syntax, imm rotation
+  encodings. Acceptance: t-asm full golden.
 - **M17 WM core.** Artifacts: `wm.fth` window records (v1.0 10.1 layout), menu bar,
   `WM_REDRAW` protocol with `begin-redraw ... next-redraw` (`clip> next-redraw`),
   XOR-outline drag, one WM task owning redraw arbitration. Acceptance: t-gui

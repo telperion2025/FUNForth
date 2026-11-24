@@ -1,0 +1,43 @@
+FUNForth seed 0.1 ok> \ M15 t-asm: assembler core (code words, run, decompile, error)
+ ok
+ok> load asm.fth
+ ok
+ok> code double r0 tos-pop r0 r0 add, r0 tos-push next end-code
+ ok
+ok> 21 double .
+42 ok
+ok> code forty2 r0 42 # mov, r0 tos-push next end-code
+ ok
+ok> forty2 .
+42 ok
+ok> create scratch 0 ,
+ ok
+ok> 123 scratch !
+ ok
+ok> code deref r0 tos-pop r0 0 r0 ldr, r0 tos-push next end-code
+ ok
+ok> scratch deref .
+123 ok
+ok> code rtest 5 rpush 5 rpop next end-code
+ ok
+ok> rtest
+ ok
+ok> 1 2 + .
+3 ok
+ok> see double
+double: <code> tos-pop r0 add r0 r0 r0 tos-push r0 b next ;
+ ok
+ok> see dup
+dup: <code> ldr r0 [r4 0] tos-push r0 b next ;
+ ok
+ok> create hsave 0 ,
+ ok
+ok> here hsave !
+ ok
+ok> code bad r0 99 mov,
+-? reg ok
+ok> hsave @ here = .
+-1 ok
+ok> ." END-ASM"
+END-ASM ok
+ok>

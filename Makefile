@@ -31,7 +31,7 @@ SD_FILES := BOOT.LST=sd/boot.lst TIMER.FTH=drivers/timer.fth \
             GPIO.FTH=drivers/gpio.fth MBOX.FTH=drivers/mailbox.fth \
             HELLO.TXT=sd/hello.txt FB.FTH=drivers/fb.fth VDI.FTH=drivers/vdi.fth \
             FONT8X16.FTH=drivers/font8x16.fth CON-FB.FTH=drivers/console-fb.fth \
-            TASKS.FTH=forth/tasks.fth
+            TASKS.FTH=forth/tasks.fth ASM.FTH=forth/asm.fth
 
 all: kernel.img kernel.elf
 
@@ -48,7 +48,7 @@ kernel.elf: $(OBJ) link.ld $(EMBED)
 	$(CROSS)gcc $(CFLAGS) $(LDFLAGS) -o $@ $(OBJ)
 
 kernel.img: kernel.elf
-	$(CROSS)objcopy -O binary $< $@
+	$(CROSS)objcopy -O binary $@ $@
 
 %.o: %.S
 	$(CROSS)gcc $(ASFLAGS) -c -o $@ $<
@@ -56,7 +56,7 @@ kernel.img: kernel.elf
 # seed.S .incbin's the stripped build/*.fth: rebuild when they change
 src/seed.o: $(EMBED)
 
-build/sd.img: tools/mksd.py sd/boot.lst sd/hello.txt drivers/timer.fth drivers/gpio.fth drivers/mailbox.fth drivers/fb.fth drivers/vdi.fth drivers/font8x16.fth drivers/console-fb.fth forth/tasks.fth | build
+build/sd.img: tools/mksd.py sd/boot.lst sd/hello.txt drivers/timer.fth drivers/gpio.fth drivers/mailbox.fth drivers/fb.fth drivers/vdi.fth drivers/font8x16.fth drivers/console-fb.fth forth/tasks.fth forth/asm.fth | build
 	python3 tools/mksd.py $@ 32 $(SD_FILES)
 
 # QEMU loads a raw -kernel image at 0x10000 on raspi models, so the harness
@@ -83,7 +83,10 @@ test-tasks: kernel.elf build/sd.img
 test-preempt: kernel.elf build/sd.img
 	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/preempt.fth --wait-for "ok> " --expected test/expected-preempt.txt
 
+test-asm: kernel.elf build/sd.img
+	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/asm.fth --wait-for "ok> " --expected test/expected-asm.txt
+
 clean:
 	rm -rf build $(OBJ) kernel.elf kernel.img
 
-.PHONY: all run test test-fb test-sd test-tasks test-preempt clean
+.PHONY: all run test test-fb test-sd test-tasks test-preempt test-asm clean
