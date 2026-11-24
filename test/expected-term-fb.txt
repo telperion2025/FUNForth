@@ -1,0 +1,25 @@
+# M18 screendump magic pixels (640x400 8bpp; final state: only t3 open,
+# dragged+snapped to (328,32), resized to 9x4 cells = 72x80, "HI" typed)
+# menu bar border y=15
+100 15 FFFFFF
+320 15 FFFFFF
+320 5 000000
+# t3 outline (328,32)-(399,111)
+328 32 FFFFFF
+399 111 FFFFFF
+360 32 FFFFFF
+328 70 FFFFFF
+# t3 title-bar separator y=48
+350 48 FFFFFF
+# "HI" in t3 content at (328,48): H stroke row6/7, I top row0
+330 54 FFFFFF
+332 55 FFFFFF
+330 62 000000
+338 48 FFFFFF
+340 48 FFFFFF
+341 48 000000
+# t3 content background
+380 100 000000
+# closed t1/t2 areas are black
+60 40 000000
+200 60 000000

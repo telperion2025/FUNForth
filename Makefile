@@ -31,7 +31,8 @@ SD_FILES := BOOT.LST=sd/boot.lst TIMER.FTH=drivers/timer.fth \
             GPIO.FTH=drivers/gpio.fth MBOX.FTH=drivers/mailbox.fth \
             HELLO.TXT=sd/hello.txt FB.FTH=drivers/fb.fth VDI.FTH=drivers/vdi.fth \
             FONT8X16.FTH=drivers/font8x16.fth CON-FB.FTH=drivers/console-fb.fth \
-            TASKS.FTH=forth/tasks.fth ASM.FTH=forth/asm.fth WM.FTH=wm.fth
+            TASKS.FTH=forth/tasks.fth ASM.FTH=forth/asm.fth WM.FTH=wm.fth \
+            TERM.FTH=term.fth
 
 all: kernel.img kernel.elf
 
@@ -56,7 +57,7 @@ kernel.img: kernel.elf
 # seed.S .incbin's the stripped build/*.fth: rebuild when they change
 src/seed.o: $(EMBED)
 
-build/sd.img: tools/mksd.py sd/boot.lst sd/hello.txt drivers/timer.fth drivers/gpio.fth drivers/mailbox.fth drivers/fb.fth drivers/vdi.fth drivers/font8x16.fth drivers/console-fb.fth forth/tasks.fth forth/asm.fth wm.fth | build
+build/sd.img: tools/mksd.py sd/boot.lst sd/hello.txt drivers/timer.fth drivers/gpio.fth drivers/mailbox.fth drivers/fb.fth drivers/vdi.fth drivers/font8x16.fth drivers/console-fb.fth forth/tasks.fth forth/asm.fth wm.fth term.fth | build
 	python3 tools/mksd.py $@ 32 $(SD_FILES)
 
 # QEMU loads a raw -kernel image at 0x10000 on raspi models, so the harness
@@ -90,7 +91,11 @@ test-gui: kernel.elf build/sd.img
 	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/gui.fth --wait-for "ok> " --expected test/expected-gui.txt --screendump build/gui.ppm --idle 3 --timeout 90
 	python3 tools/fbcheck.py build/gui.ppm test/expected-gui-fb.txt
 
+test-term: kernel.elf build/sd.img
+	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/term.fth --wait-for "ok> " --expected test/expected-term.txt --screendump build/term.ppm --idle 3 --timeout 90
+	python3 tools/fbcheck.py build/term.ppm test/expected-term-fb.txt
+
 clean:
 	rm -rf build $(OBJ) kernel.elf kernel.img
 
-.PHONY: all run test test-fb test-sd test-tasks test-preempt test-asm test-gui clean
+.PHONY: all run test test-fb test-sd test-tasks test-preempt test-asm test-gui test-term clean

@@ -1,0 +1,93 @@
+FUNForth seed 0.1 ok> \ M18 terminal windows test: 3 terminals, scripted typing, drag snap, resize,
+ ok
+ok> \ close refused on last terminal
+ ok
+ok> load fb.fth
+ ok
+ok> load font8x16.fth
+ ok
+ok> load vdi.fth
+ ok
+ok> load wm.fth
+ ok
+ok> load term.fth
+ ok
+ok> 640 400 8 fb-alloc .
+1 ok
+ok> fb-clear
+ ok
+ok> wm-init
+ ok
+ok> create t1 0 , create t2 0 , create t3 0 ,
+ ok
+ok> 10 4 term-new t1 !
+ ok
+ok> word T1 count t1 @ win-title!
+ ok
+ok> 16 6 term-new t2 !
+ ok
+ok> word T2 count t2 @ win-title!
+ ok
+ok> 8 3 term-new t3 !
+ ok
+ok> word T3 count t3 @ win-title!
+ ok
+ok> 60 t1 @ win-x! 40 t1 @ win-y! t1 @ win-open
+ ok
+ok> 200 t2 @ win-x! 60 t2 @ win-y! t2 @ win-open
+ ok
+ok> 320 t3 @ win-x! 30 t3 @ win-y! t3 @ win-open
+ ok
+ok> wm-redraw-all
+ ok
+ok> t1 @ wm-focus !
+ ok
+ok> word HELLO count term-type
+ ok
+ok> t2 @ wm-focus !
+ ok
+ok> word WORLD count term-type
+ ok
+ok> wm-redraw-all
+ ok
+ok> t3 @ wm-focus !
+ ok
+ok> word HI count term-type
+ ok
+ok> \ drag t3: right then down, commits snapped to the 8x16 cell grid
+ ok
+ok> 100 wm-key
+ ok
+ok> 27 wm-key 91 wm-key 67 wm-key
+ ok
+ok> 27 wm-key 91 wm-key 66 wm-key
+ ok
+ok> 13 wm-key
+ ok
+ok> t3 @ win-x@ . t3 @ win-y@ .
+328 32 ok
+ok> \ resize t3 by one cell right and one cell down
+ ok
+ok> term-resize-start
+ ok
+ok> 1 0 term-arrow
+ ok
+ok> 0 1 term-arrow
+ ok
+ok> term-resize-end
+ ok
+ok> t3 @ win-w@ . t3 @ win-h@ .
+72 80 ok
+ok> \ close t1 and t2 (allowed); t3 is the last terminal and must be refused
+ ok
+ok> t1 @ win-close
+ ok
+ok> t2 @ win-close
+ ok
+ok> t3 @ win-close
+last-term ok
+ok> wm-redraw-all
+ ok
+ok> ." END-TERM"
+END-TERM ok
+ok>

@@ -244,7 +244,7 @@ Tracking table (check off in the PR that completes the milestone):
 | [x] M15 | `CODE`/`end-code` assembler core | E | M3 | t-asm double/see/error |
 | [x] M16 | Full assembler word set + encoding guards | E | M15 | t-asm full |
 | [x] M17 | WM core: windows, menu bar, redraw, XOR drag | F | M10 | t-gui scripted |
-| [ ] M18 | Terminal window in WM + arrow-key fallback | F | M11, M17 | t-gui 3 windows |
+| [x] M18 | Terminal window in WM + arrow-key fallback | F | M11, M17 | t-gui 3 windows |
 | [ ] M19 | GUI FORm API + hello demo | F | M18 | t-gui demo |
 | [ ] M20 | I2C + SSD1306 OLED console + DS3231 | G | M8 | hardware visual |
 | [ ] M21 | USB HID keyboard/mouse | G | M4 | report-vector unit test |
@@ -564,9 +564,25 @@ Per-milestone definition (artifacts / behavior / acceptance):
   close + focus fallback) + QMP screendump magic-pixel diff
   (test/expected-gui-fb.txt: menu border, window outline, title separator,
   content rect, closed-window area black).
-- **M18 Terminal window.** Artifacts: `term.fth` terminal in a GEM window, cell-snapped
-  move/resize, scroll region, close refused on last terminal; own back-buffer, blit
-  on redraw. Acceptance: three windows simultaneously, scripted keys + screendump.
+- **M18 Terminal window.** DONE. Artifacts: `term.fth` (SD, as TERM.FTH; not in
+  BOOT.LST; kernel.img unchanged; needs fb/font/vdi/wm). Terminal record = WM window
+  record (40B) + `+40 cols +44 rows +48 cx +52 cy +56 buf[80*24]` (1976B, pool of 3);
+  flags bit1 = cell-snap, bit2 = is-term. `term-new ( cols rows -- term )` sizes the
+  window to cols*8 x rows*16+16 (title bar 16 px). Each terminal owns a back-buffer;
+  `term-redraw` blits it (char per cell) into the content clip from `next-redraw`.
+  `term-emit` (into focused terminal) handles CR/LF/BS/printable with wrap and
+  `term-scroll` (move up + clear bottom row); `term-type ( addr len -- )`.
+  Cell-snapped move: `wm-drag-commit` snaps x to 8 / y to 16 (min y 16) for bit1
+  windows (M17 wm.fth delta). Cell-snapped resize: `term-resize-start`,
+  `term-arrow ( dx dy -- cells )` (clamped 4..80 cols, 2..24 rows), `term-resize-end`.
+  Close refused on last terminal: `win-close` now routes through the record's
+  close-xt (default `wm-do-close`; terminals use `term-close-check`, prints
+  `last-term` and refuses when it is the last open terminal). Acceptance:
+  `make test-term` = transcript golden (test/term.fth + expected-term.txt: three
+  terminals open simultaneously, scripted typing HELLO/WORLD/HI, drag of t3 snapped
+  to (328,32), resize to 72x80, close t1/t2 ok, t3 refused) + screendump magic-pixel
+  diff (expected-term-fb.txt: menu border, t3 outline/separator, H/I glyph pixels
+  from font8x16, closed areas black).
 - **M19 GUI API + demo.** Artifacts: `gui.fth` FORm API (v1.0 10.3:
   `needs gui win-new win-open win-close win-top win-full menu-bar! event? event@
   clip> next-redraw wtext button pointer-x pointer-y buttons`), demo `hello.fth`

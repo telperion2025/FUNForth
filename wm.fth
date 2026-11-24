@@ -36,11 +36,20 @@ create mb-x 0 ,
 : win-close-xt! ( xt w -- ) 36 + ! ;
 
 \ ---- allocation + list (head = bottom, tail = top) ----
+: wm-do-close ( win -- )
+  dup wm-unlink
+  dup 4 + dup @ 1 invert and swap !
+  dup wm-focus @ = if 0 wm-focus ! then
+  drop
+  wm-request-redraw ;
+
 : win-new ( w h -- win )
   win-next @ dup >r 40 + win-next !
   r@ 40 0 fill
   r@ 20 + ! r@ 16 + !
+  ['] wm-do-close r@ 36 + !
   r> ;
+: win-close ( win -- ) dup 36 + @ swap execute ;   \ via close-xt (may refuse)
 
 : wm-append ( win -- )            \ link at tail (top)
   dup wm-list @ 0= if drop wm-list ! exit then
@@ -56,12 +65,6 @@ create mb-x 0 ,
   dup 4 + dup @ 1 or swap !
   dup wm-append
   wm-focus !
-  wm-request-redraw ;
-: win-close ( win -- )
-  dup wm-unlink
-  dup 4 + dup @ 1 invert and swap !
-  dup wm-focus @ = if 0 wm-focus ! then
-  drop
   wm-request-redraw ;
 : win-top ( win -- )
   dup wm-unlink
@@ -134,6 +137,11 @@ create mb-x 0 ,
 : wm-drag-commit ( -- )
   wm-drag @ 0= if exit then
   drag-outline
+  wm-drag @ 4 + @ 2 and if        \ cell-snap window (flags bit1): 8x16 grid
+    wm-dx @ -8 and wm-dx !
+    wm-dy @ -16 and wm-dy !
+    wm-dy @ 16 < if 16 wm-dy ! then
+  then
   wm-dx @ wm-drag @ win-x!
   wm-dy @ wm-drag @ win-y!
   0 wm-drag !
