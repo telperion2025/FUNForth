@@ -67,7 +67,7 @@ def main():
     tmpdir = tempfile.mkdtemp(prefix="funforth-")
     sock_path = os.path.join(tmpdir, "serial.sock")
     cmd += ["-M", args.machine, "-kernel", args.kernel] + sd + [
-            "-serial", "unix:%s,server" % sock_path,
+            "-serial", "unix:%s,server=on,wait=off" % sock_path,
             "-display", "none", "-monitor", "none"]
     qmp_path = os.path.join(tmpdir, "qmp.sock")
     if args.screendump:
@@ -89,7 +89,9 @@ def main():
             break
         except OSError:
             if time.time() > deadline or p.poll() is not None:
-                sys.exit("error: cannot connect to QEMU serial socket")
+                p.terminate()
+                err = p.stderr.read().decode("utf-8", "replace") if p.stderr else ""
+                sys.exit("error: cannot connect to QEMU serial socket\nQEMU said:\n%s" % err)
             time.sleep(0.05)
 
     out = b""
