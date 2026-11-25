@@ -25,5 +25,5 @@ jobs:
             gcc-arm-none-eabi qemu-system-arm python3
       - name: Build kernel.elf + SD image and run the QEMU suite
         run: |
-          make test test-sd test-fb test-tasks test-preempt \
+          make -k test test-sd test-fb test-tasks test-preempt \
                test-asm test-gui test-term test-hello

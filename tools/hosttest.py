@@ -336,20 +336,24 @@ check("mkfont", mkfont_test())
 M32 = 0xFFFFFFFF
 AL = 0xE0000000
 
+def ror32(n, s):
+    return n & M32 if s % 32 == 0 else ((n >> (s % 32)) | (n << (32 - s % 32))) & M32
+
+def enc_imm32(n):
+    # ARM imm32: imm = imm8 ror (2*rot); given n, imm8 = n ror (32-2*rot)
+    for i in range(16):
+        r = ror32(n, 32 - i * 2)
+        if r <= 255:
+            return (i << 8) | r
+    raise ValueError
+
 def enc():
     ccv = [AL]; sfv = [0]
     out = []
     def emitc(w):
         out.append((w | ccv[0] | (0x100000 if sfv[0] else 0)) & M32)
         ccv[0] = AL; sfv[0] = 0
-    def ror32(n, s):
-        return n & M32 if s == 0 else ((n >> s) | (n << (32 - s))) & M32
-    def imm32(n):
-        for i in range(16):
-            r = ror32(n, i * 2)
-            if r <= 255:
-                return (i << 8) | r
-        raise ValueError
+    imm32 = enc_imm32
     def op2(p):
         return (0x02000000 | imm32(p & 0xEFFFFFFF)) if p & 0x10000000 else p
     def mov(d, p): emitc(0x01A00000 | d << 12 | op2(p))
@@ -424,6 +428,10 @@ def disasm(cl, nextv=0x8100):
     return " ".join(parts) + " ;"
 
 def asm_golden_test():
+    out, ccv, mov, add, cmp_, tos_pop, tos_push, bkpt, dsb, dmb, isb = enc()
+    # rotated-imm32 encoding: 65280 = 0xFF ror 24 -> op2 0xCFF (rot field is
+    # bits 11-8, i.e. i<<8, and imm8 = n ror (32-2i)); guards the ?imm32 bugs
+    assert enc_imm32(65280) == 0xCFF and enc_imm32(42) == 42 and enc_imm32(0xFF000000) == 0x4FF, "imm32"
     out, ccv, mov, add, cmp_, tos_pop, tos_push, bkpt, dsb, dmb, isb = enc()
     words = {}
     def word(name, fn):

@@ -73,7 +73,7 @@ create asm-dead 0 ,
 : ?imm32 ( n -- op2 )
   dup 0< if ." -? imm" asm-abort then
   16 0 do
-    dup i 2 * ror32 dup 255 > 0= if i 8 * swap or swap drop unloop exit then
+    dup i 2 * 32 swap - ror32 dup 255 > 0= if i 8 lshift swap or swap drop unloop exit then
     drop
   loop
   ." -? imm" asm-abort ;
