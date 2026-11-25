@@ -36,6 +36,12 @@ create mb-x 0 ,
 : win-close-xt! ( xt w -- ) 36 + ! ;
 
 \ ---- allocation + list (head = bottom, tail = top) ----
+: wm-unlink ( win -- )
+  wm-list @ over = if @ wm-list ! exit then
+  wm-list @ begin dup 0= if 2drop exit then 2dup @ <> while @ repeat nip dup @ swap ! ;
+
+: wm-request-redraw ( -- ) 1 wm-redraw-pend ! ;
+
 : wm-do-close ( win -- )
   dup wm-unlink
   dup 4 + dup @ 1 invert and swap !
@@ -55,11 +61,6 @@ create mb-x 0 ,
   dup wm-list @ 0= if drop wm-list ! exit then
   wm-list @ begin dup @ 0= until
   ! ;
-: wm-unlink ( win -- )
-  wm-list @ over = if @ wm-list ! exit then
-  wm-list @ begin dup 0= if 2drop exit then 2dup @ <> while @ repeat nip dup @ swap ! ;
-
-: wm-request-redraw ( -- ) 1 wm-redraw-pend ! ;
 
 : win-open ( win -- )
   dup 4 + dup @ 1 or swap !
@@ -110,6 +111,8 @@ create mb-x 0 ,
 
 \ ---- redraw protocol: begin-redraw ... next-redraw (clip> re-asserts clip) ----
 : begin-redraw ( -- ) wm-list @ wm-cur ! ;
+: clip> ( -- )                    \ content clip of the current redraw window
+  wm-win @ win-x@ wm-win @ win-y@ 16 + wm-win @ win-w@ wm-win @ win-x@ + 1- wm-win @ win-y@ 16 + wm-win @ win-h@ + 1- clip! ;
 : next-redraw ( -- f )            \ one window per call, bottom to top; f=0 at end
   wm-cur @ 0= if 0 exit then
   wm-cur @ dup wm-win ! @ wm-cur !
@@ -119,8 +122,6 @@ create mb-x 0 ,
   clip>
   wm-win @ win-redraw@ execute
   -1 ;
-: clip> ( -- )                    \ content clip of the current redraw window
-  wm-win @ win-x@ wm-win @ win-y@ 16 + wm-win @ win-w@ wm-win @ win-x@ + 1- wm-win @ win-y@ 16 + wm-win @ win-h@ + 1- clip! ;
 
 : wm-redraw-all ( -- )
   fb-clear

@@ -9,17 +9,6 @@ create term-pool 3 1976 * allot
 create term-next term-pool ,
 create term-rsz 0 ,
 
-: term-new ( cols rows -- term )
-  term-next @ dup >r 1976 + term-next !
-  r@ 1976 0 fill
-  r@ 44 + ! r@ 40 + !                       \ rows -> +44, cols -> +40
-  r@ 40 + @ 8 * r@ 16 + !                   \ win w = cols*8
-  r@ 44 + @ 16 * 16 + r@ 20 + !             \ win h = rows*16 + 16 (title bar)
-  6 r@ 4 + !                                \ flags: cell-snap + is-term
-  ['] term-redraw r@ 24 + !
-  ['] term-close-check r@ 36 + !
-  r> ;
-
 : term-redraw ( w -- )
   >r
   r@ 44 @ 0 do                              \ rows
@@ -62,6 +51,17 @@ create term-rsz 0 ,
   0 wm-list @ begin dup while dup 4 + @ 4 and if 1+ then @ repeat drop ;
 : term-close-check ( win -- )              \ close refused on the last terminal
   term-open-count 1 > if wm-do-close else ." last-term" drop then ;
+
+: term-new ( cols rows -- term )
+  term-next @ dup >r 1976 + term-next !
+  r@ 1976 0 fill
+  r@ 44 + ! r@ 40 + !                       \ rows -> +44, cols -> +40
+  r@ 40 + @ 8 * r@ 16 + !                   \ win w = cols*8
+  r@ 44 + @ 16 * 16 + r@ 20 + !             \ win h = rows*16 + 16 (title bar)
+  6 r@ 4 + !                                \ flags: cell-snap + is-term
+  ['] term-redraw r@ 24 + !
+  ['] term-close-check r@ 36 + !
+  r> ;
 
 \ cell-snapped resize: term-resize-start, term-arrow ( dx dy -- in cells ), end
 : term-resize-start ( -- )

@@ -40,14 +40,14 @@ create lm 0 ,       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
   dup 8388608 and if 16777216 - then   \ sign-extend when bit23 set
   2 lshift swap 8 + + ;
 
-: ?n ( n -- )                 \ operand-count guard
-  depth over 1 + < if ." -? ops " asm-abort then ;
-
 : asm-abort ( -- )            \ bad encoding: roll HERE back, neutralize the
   code-h0 @ here - allot      \ aborted header (cfa := abort; latest lives in
   code-xt @ 4 + ' abort 4 + @ swap !   \ r6, no Forth-visible writer - D4),
   begin word count nip 0= until       \ skip the rest of the input line,
   abort ;                            \ then abort
+
+: ?n ( n -- )                 \ operand-count guard
+  depth over 1 + < if ." -? ops " asm-abort then ;
 
 \ ---- operand validators (operand checked BEFORE the cell is written) ----
 : ?rk ( p -- r )              \ register operand 0..15

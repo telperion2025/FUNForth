@@ -4,6 +4,8 @@
 Checks:
   1. forth-lint: every .fth file parses clean (control-flow balance, word
      resolution against seed+core+drivers+wins, balanced quotes/parens).
+     forth-order: non-test files have no use-before-definition (a colon body
+     resolves names at compile time, so forward refs abort the load on QEMU).
   2. makefile: test-* targets reference existing files; SD_FILES entries are
      valid 8.3 names with existing host paths; .PHONY covers all targets;
      every `load x.fth` in sd/boot.lst and test/*.fth is on the SD image.
@@ -158,6 +160,58 @@ for f in FORTH_FILES:
         for e in errs[:8]:
             print("    " + e)
 check("forth-lint", lint_ok, "%d files" % len(FORTH_FILES))
+
+# --------------------------------------- definition-order lint (non-test files)
+# A colon body is resolved at COMPILE time, so every word it names (including
+# behind [']) must already be defined when the definition is reached; loading
+# a file with a forward reference aborts with -? <name> on real hardware.
+ORDER_FILES = (["forth/core.fth", "drivers/sd.fth", "drivers/timer.fth",
+                "drivers/gpio.fth", "drivers/mailbox.fth", "drivers/fb.fth",
+                "drivers/font8x16.fth", "drivers/vdi.fth",
+                "drivers/console-fb.fth", "forth/tasks.fth", "forth/asm.fth",
+                "wm.fth", "term.fth", "gui.fth", "hello.fth"])
+
+def file_defs(path):
+    defs = []
+    for raw in open(path):
+        toks = strip_line(raw.rstrip("\n")).split()
+        for i, tok in enumerate(toks[:-1]):
+            if tok in (":", "create"):
+                defs.append(toks[i + 1].strip("();"))
+    return defs
+
+def lint_order(path):
+    errs = []
+    defs = file_defs(path)
+    pending = set(defs)
+    defined = set(KNOWN) - pending
+    for ln, raw in enumerate(open(path), 1):
+        toks = strip_line(raw.rstrip("\n")).split()
+        for i, tok in enumerate(toks):
+            tok = tok.strip("();")
+            if not tok or re.fullmatch(r'-?\d+', tok):
+                continue
+            prev = toks[i - 1] if i else ""
+            if prev in ("word", "load", "needs", "code", "label", "marker") or "." in tok:
+                continue
+            if tok in (":", "create") and i + 1 < len(toks):
+                name = toks[i + 1].strip("();")
+                defined.add(name)
+                pending.discard(name)
+                continue
+            if tok in pending:
+                errs.append("line %d: '%s' used before its definition" % (ln, tok))
+    return errs
+
+order_ok = True
+for f in ORDER_FILES:
+    errs = lint_order(f)
+    if errs:
+        order_ok = False
+        print("  %s:" % f)
+        for e in errs[:8]:
+            print("    " + e)
+check("forth-order", order_ok, "%d files" % len(ORDER_FILES))
 
 # ---------------------------------------------------------------- makefile
 mk = open("Makefile").read()
