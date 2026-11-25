@@ -1,43 +1,30 @@
-\ TEMPORARY probe v4: ?imm32 fix check, next-redraw inline bisect, term, bad rect last
+\ TEMPORARY probe v5: execute-of-redraw-xt + lsm cell dump
 load fb.fth
 load font8x16.fth
 load vdi.fth
 load wm.fth
-load term.fth
 load asm.fth
+depth . cr
 640 400 8 fb-alloc .
 fb-clear
 wm-init
-." R1" cr 65280 8 ror32 h. cr
-." R2" cr 65280 16 ror32 h. cr
-." R3" cr 65280 32 ror32 h. cr
-." I1" cr 65280 ?imm32 h. cr depth . cr
-." I2" cr 42 ?imm32 h. cr
 create win1 0 ,
 200 120 win-new win1 !
 word One count win1 @ win-title!
 : redraw1 ( win -- ) drop ;
 ['] redraw1 win1 @ win-redraw!
 100 win1 @ win-x! 60 win1 @ win-y! win1 @ win-open
-wm-list @ wm-cur ! ." N1" cr
-wm-cur @ h. cr
-wm-cur @ dup wm-win ! @ wm-cur ! ." N2" cr
-wm-cur @ h. cr
-0 0 fb-w @ 1- fb-h @ 1- clip! ." N3" cr
-wm-win @ win-x@ wm-win @ win-y@ wm-win @ win-w@ wm-win @ win-x@ + 1- wm-win @ win-y@ wm-win @ win-h@ + 1- fillrect0 ." N4" cr
-wm-win @ wm-chrome ." N5" cr
-clip> ." N6" cr
-wm-win @ win-redraw@ h. cr
-wm-win @ win-redraw@ execute ." N7" cr
-." N8" cr
-wm-redraw-all ." A7" cr
-create t1 0 ,
-10 4 term-new t1 !
-word T1 count t1 @ win-title!
-60 t1 @ win-x! 40 t1 @ win-y! t1 @ win-open
-." T1" cr
-wm-redraw-all ." T2" cr
-120 90 60 20 fillrect0 ." C3" cr
-code movrot r0 65280 # mov, r0 tos-push next end-code
-movrot h. cr ." B4" cr
+." E0" cr depth . cr
+." E1" cr ' redraw1 h. cr
+wm-list @ wm-cur ! wm-cur @ dup wm-win ! @ wm-cur ! wm-win @ win-redraw@ h. cr ." E2" cr
+0 ' redraw1 execute ." E3" cr
+' redraw1 execute ." E4" cr
+wm-win @ dup win-redraw@ execute ." E5" cr
+wm-win @ win-redraw@ execute ." E6" cr
+." E7" cr depth . cr
+create lsbuf 8 allot
+code lsm ' lsbuf pfa lit, r2 tos-pop r1 5 # mov, ib r2 2 stm, r2 2 ldm, r1 tos-push next end-code
+." L0" cr ' lit h. cr ' lsbuf pfa h. cr
+' lsm pfa >r r@ @ h. r@ 4 + @ h. r@ 8 + @ h. r@ 12 + @ h. r@ 16 + @ h. r@ 20 + @ h. r@ 24 + @ h. r> drop cr ." L1" cr
+lsm . ." L2" cr
 ." DONE" cr
