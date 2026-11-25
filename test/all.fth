@@ -109,7 +109,7 @@ words
 \ --- M7: system timer ---
 millis dup - .
 0 millis 100 ms millis swap - dup 90 < 0= swap 110 > 0= and . drop
-: wt ( -- ) sys-cs @ 2 and 0= if exit then wt ;   \ wait for M1; recursive: loops run tick-ckpt
+: wt ( -- ) sys-cs @ 2 and if exit then wt ;   \ wait for M1; recursive: loops run tick-ckpt
 tick-start 5 ms wt tick? .
 micros 10 ms micros swap - dup 9000 < 0= swap 100000 > 0= and .
 \ --- M8: GPIO ---
