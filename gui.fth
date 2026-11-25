@@ -60,7 +60,7 @@ create fs 0 ,
   r> drop ;
 
 \ ---- hit testing ----
-create h-x 0 , h-y 0 , h-rx 0 , h-ry 0 , h-rw 0 , h-rh 0 ,
+create h-x 0 , create h-y 0 , create h-rx 0 , create h-ry 0 , create h-rw 0 , create h-rh 0 ,
 : in-rect? ( x y rx ry rw rh -- f )
   h-rh ! h-rw ! h-ry ! h-rx ! h-y ! h-x !
   h-rx @ h-x @ < 0= h-x @ h-rx @ h-rw @ + < and
@@ -76,7 +76,7 @@ create at-win 0 ,
 create btn-tab 192 allot
 create btn-cnt 0 ,
 create btn-t 0 ,
-create b-x 0 , b-y 0 , b-w 0 , b-h 0 ,
+create b-x 0 , create b-y 0 , create b-w 0 , create b-h 0 ,
 : button ( addr len x y w h xt -- )         \ draw + register in focused window
   btn-t !
   b-h ! b-w ! b-y ! b-x !

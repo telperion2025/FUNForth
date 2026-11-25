@@ -64,7 +64,9 @@ ok> code deref2 r1 0 # mov, r0 tos-pop r0 r1 r0 ldrr, r0 tos-push next end-code
  ok
 ok> cell2 deref2 .
 77 ok
-ok> code lsm r1 5 # mov, r13 r1 stm, r13 r1 ldm, r1 tos-push next end-code
+ok> create lsbuf 8 allot
+ ok
+ok> code lsm ' lsbuf pfa lit, r2 tos-pop r1 5 # mov, ib r2 2 stm, r2 2 ldm, r1 tos-push next end-code
  ok
 ok> lsm .
 5 ok

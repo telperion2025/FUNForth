@@ -38,7 +38,7 @@ create mb-x 0 ,
 \ ---- allocation + list (head = bottom, tail = top) ----
 : wm-unlink ( win -- )
   wm-list @ over = if @ wm-list ! exit then
-  wm-list @ begin dup 0= if 2drop exit then 2dup @ <> while @ repeat nip dup @ swap ! ;
+  wm-list @ begin dup 0= if 2drop exit then 2dup @ <> while @ repeat over @ swap ! drop ;
 
 : wm-request-redraw ( -- ) 1 wm-redraw-pend ! ;
 
@@ -59,8 +59,8 @@ create mb-x 0 ,
 
 : wm-append ( win -- )            \ link at tail (top)
   dup wm-list @ 0= if drop wm-list ! exit then
-  wm-list @ begin dup @ 0= until
-  ! ;
+  drop
+  wm-list @ begin dup @ while @ repeat ! ;
 
 : win-open ( win -- )
   dup 4 + dup @ 1 or swap !

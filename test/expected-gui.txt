@@ -26,7 +26,7 @@ ok> : redraw1 ( win -- ) drop 120 90 60 20 fillrect ;
  ok
 ok> ['] redraw1 win1 @ win-redraw!
  ok
-ok> 100 60 win1 @ win-open
+ok> 100 win1 @ win-x! 60 win1 @ win-y! win1 @ win-open
  ok
 ok> win1 @ win-x@ . win1 @ win-y@ .
 100 60 ok
@@ -38,7 +38,7 @@ ok> : redraw2 ( win -- ) drop 168 130 30 30 rect ;
  ok
 ok> ['] redraw2 win2 @ win-redraw!
  ok
-ok> 158 108 win2 @ win-open
+ok> 158 win2 @ win-x! 108 win2 @ win-y! win2 @ win-open
  ok
 ok> wm-redraw-all
  ok

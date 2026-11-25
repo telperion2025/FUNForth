@@ -12,13 +12,13 @@ create win2 0 ,
 word One count win1 @ win-title!
 : redraw1 ( win -- ) drop 120 90 60 20 fillrect ;
 ['] redraw1 win1 @ win-redraw!
-100 60 win1 @ win-open
+100 win1 @ win-x! 60 win1 @ win-y! win1 @ win-open
 win1 @ win-x@ . win1 @ win-y@ .
 150 100 win-new win2 !
 word Two count win2 @ win-title!
 : redraw2 ( win -- ) drop 168 130 30 30 rect ;
 ['] redraw2 win2 @ win-redraw!
-158 108 win2 @ win-open
+158 win2 @ win-x! 108 win2 @ win-y! win2 @ win-open
 wm-redraw-all
 \ scripted drag of focused win2: 'd' starts XOR outline, arrows move, CR commits
 100 wm-key

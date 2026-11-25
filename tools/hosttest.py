@@ -61,7 +61,7 @@ def known_words():
         known |= set(re.findall(r'(?m)^:\s+(\S+)', s))
         known |= set(re.findall(r':\s+([^\s;()]+)', s))
         known |= set(re.findall(r'create\s+([^\s,]+)', s))
-        known |= set(re.findall(r'([a-z0-9._-]+)\s+-?\d+\s*,', s))   # create cells (incl. mid-line)
+        known |= set(re.findall(r'(?:create|variable)\s+([a-z0-9._-]+)\s+-?\d+\s*,', s))   # create/variable cells only
         known |= set(re.findall(r'\d+\s+task:\s+(\S+)', s))
         known |= set(re.findall(r'(?m)^variable\s+(\S+)', s))
     return known

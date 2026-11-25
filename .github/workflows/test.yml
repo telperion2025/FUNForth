@@ -27,3 +27,10 @@ jobs:
         run: |
           make -k test test-sd test-fb test-tasks test-preempt \
                test-asm test-gui test-term test-hello
+      - name: Upload QEMU transcripts and screendumps
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-transcripts
+          path: build/
+          if-no-files-found: ignore

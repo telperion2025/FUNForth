@@ -162,6 +162,15 @@ def main():
     ser.close()
     transcript = out.decode("utf-8", "replace")
 
+    if args.script:
+        try:
+            os.makedirs("build", exist_ok=True)
+            logpath = os.path.join("build", "transcript-" + os.path.basename(args.script) + ".log")
+            with open(logpath, "w", encoding="utf-8") as f:
+                f.write(transcript)
+        except OSError:
+            pass
+
     if args.expected:
         with open(args.expected, encoding="utf-8") as f:
             expected = norm(f.read())

@@ -68,8 +68,7 @@ create asm-dead 0 ,
 
 \ ---- rotated immediates (imm32: 8-bit value ror even 0..30) ----
 : ror32 ( n s -- n' )
-  dup 0= if drop exit then
-  >r dup r@ rshift swap r> 32 - lshift or ;
+  >r dup r@ rshift swap r> 32 swap - lshift or ;
 : ?imm32 ( n -- op2 )
   dup 0< if ." -? imm" asm-abort then
   16 0 do
@@ -221,11 +220,11 @@ create asm-dead 0 ,
 : ia 0 lm ! ;  : ib 1 lm ! ;  : da 2 lm ! ;  : db 3 lm ! ;
 : ldm, ( b mask -- )
   2 ?n swap ao1 ! ?mask ao2 !
-  145752064 lm @ 1 and 24 lshift or lm @ 2 < if 8388608 or then
+  145752064 lm @ 1 and 24 lshift or lm @ 2 < 0= if 8388608 xor then
   ao1 @ 65536 * or ao2 @ or emitc 0 lm ! ;
 : stm, ( b mask -- )
   2 ?n swap ao1 ! ?mask ao2 !
-  144703488 lm @ 1 and 24 lshift or lm @ 2 < if 8388608 or then
+  144703488 lm @ 1 and 24 lshift or lm @ 2 < 0= if 8388608 xor then
   ao1 @ 65536 * or ao2 @ or emitc 0 lm ! ;
 
 \ ---- swap: swp, ( b r d -- ) = swp d, r, [b] ----
