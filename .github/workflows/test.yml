@@ -1,0 +1,29 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Host-side checks (no ARM toolchain needed)
+        run: python3 tools/hosttest.py
+
+  qemu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ARM cross toolchain and QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gcc-arm-none-eabi qemu-system-arm python3
+      - name: Build kernel.elf + SD image and run the QEMU suite
+        run: |
+          make test test-sd test-fb test-tasks test-preempt \
+               test-asm test-gui test-term test-hello
