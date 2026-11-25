@@ -349,9 +349,9 @@ create lm 0 ,       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
   ci @ 267387120 and 18874480 = if            \ bkpt
     ." bkpt " ci @ 8 rshift 4095 and 4 lshift ci @ 15 and or . space
     4 + 0 exit then
-  ci @ 268435455 and dup 235929493 = if drop ." isb " 4 + 0 exit then
-  ci @ 268435455 and dup 235929498 = if drop ." dsb " 4 + 0 exit then
-  ci @ 268435455 and dup 235929499 = if drop ." dmb " 4 + 0 exit then
+  ci @ 268435455 and 235343765 = if ." isb " 4 + 0 exit then
+  ci @ 268435455 and 235343770 = if ." dsb " 4 + 0 exit then
+  ci @ 268435455 and 235343771 = if ." dmb " 4 + 0 exit then
   ci @ 267386880 and 16777216 = if            \ cps family (cond 0xF)
     ci @ 262144 and if ." cpsid " else ." cpsie " then
     ci @ 448 and h. space 4 + 0 exit then

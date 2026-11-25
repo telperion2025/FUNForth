@@ -77,6 +77,10 @@ def lint_forth(path):
         # quote/paren sanity on the raw line
         if raw.count('"') % 2 == 1 and '."' not in raw:
             errs.append("line %d: odd quote count" % ln)
+        # `and|or|xor dup <n> = if drop ...` leaks the operator's result on the
+        # not-taken path (this is what broke dis1's isb/dsb/dmb decode on QEMU)
+        if re.search(r'\b(?:and|or|xor)\s+dup\s+-?\d+\s*=\s*if\s+drop\b', line):
+            errs.append("line %d: 'op dup n = if drop' leaks the op result when the branch is not taken" % ln)
         toks = line.split()
         skip_name = False
         for ti, tok in enumerate(toks):
