@@ -224,8 +224,10 @@ ok> millis dup - .
 0 ok
 ok> 0 millis 100 ms millis swap - dup 90 < 0= swap 110 > 0= and . drop
 -1 ok
-ok> tick-start 5 ms tick? .
-0 ok
+ok> : wt ( -- ) sys-cs @ 2 and 0= if exit then wt ;   \ wait for M1; recursive: loops run tick-ckpt
+ ok
+ok> tick-start 5 ms wt tick? .
+-1 ok
 ok> micros 10 ms micros swap - dup 9000 < 0= swap 100000 > 0= and .
 -1 ok
 ok> \ --- M8: GPIO ---
