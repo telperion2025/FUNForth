@@ -46,7 +46,7 @@ litw h.
 code misc 0 bkpt, dsb, dmb, isb, 128 cpsid, 128 cpsie, next end-code
 see misc
 see eqmov
-code down r0 5 # mov, label top ' top mark r0 r0 1 # sub, r0 0 # cmp, ne top b, r0 tos-push next end-code
+code down r0 5 # mov, here >r r0 r0 1 # sub, r0 0 # cmp, ne r> b, r0 tos-push next end-code
 down .
 create hsave2 0 ,
 here hsave2 !

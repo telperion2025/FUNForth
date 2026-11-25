@@ -98,7 +98,7 @@ misc: <code> bkpt 0 dsb dmb isb cpsid 00000080 cpsie 00000080 b next ;
 ok> see eqmov
 eqmov: <code> tos-pop r1 tos-pop r2 mov r0 # 0 cmp r1 r2 eq mov r0 # 1 tos-push r0 b next ;
  ok
-ok> code down r0 5 # mov, label top ' top mark r0 r0 1 # sub, r0 0 # cmp, ne top b, r0 tos-push next end-code
+ok> code down r0 5 # mov, here >r r0 r0 1 # sub, r0 0 # cmp, ne r> b, r0 tos-push next end-code
  ok
 ok> down .
 0 ok
