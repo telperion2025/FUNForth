@@ -47,7 +47,7 @@ create asm-dead 0 ,
   1 asm-dead !      \ aborted header (cfa := abort; latest lives in
   code-xt @ 4 + ['] abort 4 + @ swap !   \ r6, no Forth-visible writer - D4),
   begin word count nip 0= until       \ skip the rest of the input line,
-  0 0 0 state ! ;                            \ then abort
+  0 state ! ;                                 \ then abort (no stack junk)
 
 : ?n ( n -- )                 \ operand-count guard
   depth over 1 + < if ." -? ops" asm-abort then drop ;
