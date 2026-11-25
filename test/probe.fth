@@ -1,20 +1,10 @@
-\ TEMPORARY probe v12: minimal colon loop + cpsid dis1 (short lines)
-load fb.fth
-load font8x16.fth
-load vdi.fth
-load wm.fth
+\ TEMPORARY probe v13: cps-branch pieces at top level vs in colon word
 load asm.fth
-640 400 8 fb-alloc .
-fb-clear
-wm-init
 code m1 128 cpsid, next end-code
-' m1 pfa dis1 2drop cr ." C4" cr
-' m1 pfa 4 + dis1 2drop cr ." C5" cr
-create win1 0 ,
-200 120 win-new win1 !
-word One count win1 @ win-title!
-100 win1 @ win-x! 60 win1 @ win-y! win1 @ win-open
-: lp ( -- ) wm-list @ begin dup while @ repeat drop ;
-lp ." LP" cr
-menu-bar! ." M9" cr
+' m1 pfa @ ci ! ci @ h. cr ." A0" cr
+ci @ 262144 and if ." cpsid " else ." cpsie " then cr ." A2" cr
+ci @ 448 and h. space cr ." A3" cr
+: d2 ( -- ) ci @ 262144 and if ." cpsid " else ." cpsie " then ci @ 448 and h. space cr ;
+d2 ." A4" cr
+' m1 pfa dis1 2drop cr ." A5" cr
 ." DONE" cr
