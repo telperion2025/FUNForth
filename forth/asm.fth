@@ -96,7 +96,7 @@ create lm 0 ,       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
 : code ( -- )
   here code-h0 !
   create
-  latest @ code-xt !
+  latest code-xt !
   here code-b ! ;
 : end-code ( -- )             \ patch cfa := body start; NEXT jumps to [xt+4]
   code-b @ code-xt @ 4 + ! ;
@@ -268,7 +268,7 @@ create lm 0 ,       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
 \ '<name> mark binds it to the current assembly position (HERE).
 : label ( -- )
   create
-  docol-addr latest @ 4 + !
+  docol-addr latest 4 + !
   ['] lit , 0 , ['] exit , ;
 : mark ( xt -- ) pfa 4 + here swap ! ;
 

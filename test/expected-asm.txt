@@ -2,7 +2,7 @@ FUNForth seed 0.1 ok> \ M15 t-asm: assembler core (code words, run, decompile, e
  ok
 ok> load asm.fth
  ok
-ok> code double r0 tos-pop r0 r0 add, r0 tos-push next end-code
+ok> code double r0 tos-pop r0 r0 r0 add, r0 tos-push next end-code
  ok
 ok> 21 double .
 42 ok
@@ -84,7 +84,7 @@ ok> code umt r0 tos-pop r1 tos-pop r2 r3 r0 r1 umull, r2 tos-push r3 tos-push ne
  ok
 ok> 6 7 umt . .
 042 ok
-ok> code litw 65280 lit, r0 swap # mov, r0 tos-push next end-code
+ok> code litw 65280 lit, r0 tos-pop r0 tos-push next end-code
  ok
 ok> litw h.
 0000FF00 ok
