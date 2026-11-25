@@ -22,7 +22,7 @@ ok> 200 120 win-new win1 !
  ok
 ok> word One count win1 @ win-title!
  ok
-ok> : redraw1 ( win -- ) drop 120 90 60 20 fillrect ;
+ok> : redraw1 ( win -- ) drop 120 90 180 110 fillrect ;
  ok
 ok> ['] redraw1 win1 @ win-redraw!
  ok
@@ -34,7 +34,7 @@ ok> 150 100 win-new win2 !
  ok
 ok> word Two count win2 @ win-title!
  ok
-ok> : redraw2 ( win -- ) drop 168 130 30 30 rect ;
+ok> : redraw2 ( win -- ) drop 168 130 198 160 rect ;
  ok
 ok> ['] redraw2 win2 @ win-redraw!
  ok
