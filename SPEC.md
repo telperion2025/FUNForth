@@ -535,7 +535,7 @@ Per-milestone definition (artifacts / behavior / acceptance):
   `bkpt,` ( imm16 ), `dsb, dmb, isb,` (ARMv6 MCR p15 forms), `cpsid, cpsie,`
   ( AIF mask operand; cond 0xF fixed ), `nop,`, `lit,` inline literal pair,
   rotated immediates (`?imm32`: 8-bit value ror even 0..30, replaces the M15
-  0..255-only `?imm8`), operand-count guards (`?n` -> `-? ops`), remaining-line
+  0..255-only `?imm8`), operand-count guards (`?n` -> `-? ops`), an `asm-dead` flag so the interrupted word's remaining emitters cannot write over the rolled-back header (`abort` returns into them; `,safe` drops their cells), `code`-time skip of a dangling `latest` header (`here = latest` after rollback), remaining-line
   abort (`begin word count nip 0= until` before `abort`), aborted-header
   neutralization, extended cond-agnostic `dis1` (prints cond prefix, ldm/stm
   modes, swp/mul-family/mrs/msr/bkpt/barriers/cps, halfword/signed, reg-offset

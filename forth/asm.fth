@@ -30,7 +30,9 @@ create nextv 0 ,    \ address of the seed NEXT (found by next-init)
 create ccv 14 28 lshift ,  \ condition prefix, default AL (0xE0000000)
 create sfv 0 ,      \ S-bit flag, consumed by the next emitted cell
 create mm 0 ,       \ ldr/str modifiers: 1=neg(U=0) 2=post(P=0) 4=wb(W=1)
-create lm 0 ,       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
+create lm 0 ,
+create asm-dead 0 ,
+: ,safe ( w -- ) asm-dead @ if drop exit then , ;       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
 
 \ ---- shared helpers ----
 : pfa ( xt -- a ) dup 9 + c@ + 10 + align4 ;
@@ -41,10 +43,11 @@ create lm 0 ,       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
   2 lshift swap 8 + + ;
 
 : asm-abort ( -- )            \ bad encoding: roll HERE back, neutralize the
-  code-h0 @ here - allot      \ aborted header (cfa := abort; latest lives in
+  code-h0 @ here - allot
+  1 asm-dead !      \ aborted header (cfa := abort; latest lives in
   code-xt @ 4 + ['] abort 4 + @ swap !   \ r6, no Forth-visible writer - D4),
   begin word count nip 0= until       \ skip the rest of the input line,
-  abort ;                            \ then abort
+  0 0 0 state ! ;                            \ then abort
 
 : ?n ( n -- )                 \ operand-count guard
   depth over 1 + < if ." -? ops" asm-abort then drop ;
@@ -87,13 +90,15 @@ create lm 0 ,       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
 
 \ ---- cell emitter: applies cond prefix + S flag, then resets both ----
 : emitc ( w -- )
-  ccv @ or sfv @ 1048576 * or ,
+  ccv @ or sfv @ 1048576 * or ,safe
   14 28 lshift ccv ! 0 sfv ! ;
 
 \ ---- CODE / end-code ----
 \ code creates the header (name from the input stream); code-h0 is saved
 \ BEFORE create so a failed assembly rolls HERE fully back.
 : code ( -- )
+  0 asm-dead !
+  here latest = if here 9 + c@ 10 + align4 allot then
   here code-h0 !
   create
   latest code-xt !
@@ -259,9 +264,9 @@ create lm 0 ,       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
 : dsb, -301527142 emitc ;        \ 0x0E070F9A | cond : mcr p15,0,r0,c7,c10,4
 : dmb, -301527141 emitc ;        \ 0x0E070F9B : mcr p15,0,r0,c7,c10,5
 : isb, -301527147 emitc ;        \ 0x0E070F95 : mcr p15,0,r0,c7,c5,4
-: cpsid, ( m -- ) 1 ?n ?mask -250871808 or , ;   \ 0xF10C0000 | AIF (cond 0xF fixed)
-: cpsie, ( m -- ) 1 ?n ?mask -251133952 or , ;   \ 0xF1080000 | AIF
-: lit, ( n -- ) ['] lit , , ;    \ inline literal pair (pool = inline lit,)
+: cpsid, ( m -- ) 1 ?n ?mask -250871808 or ,safe ;   \ 0xF10C0000 | AIF (cond 0xF fixed)
+: cpsie, ( m -- ) 1 ?n ?mask -251133952 or ,safe ;   \ 0xF1080000 | AIF
+: lit, ( n -- ) asm-dead @ if drop exit then ['] lit , , ;    \ inline literal pair (pool = inline lit,)
 
 \ ---- labels ( backward refs only ) ----
 \ label <name>: word whose body pushes its marked assembly address.
