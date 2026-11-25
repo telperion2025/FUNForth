@@ -42,38 +42,38 @@ create lm 0 ,       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
 
 : asm-abort ( -- )            \ bad encoding: roll HERE back, neutralize the
   code-h0 @ here - allot      \ aborted header (cfa := abort; latest lives in
-  code-xt @ 4 + ' abort 4 + @ swap !   \ r6, no Forth-visible writer - D4),
+  code-xt @ 4 + ['] abort 4 + @ swap !   \ r6, no Forth-visible writer - D4),
   begin word count nip 0= until       \ skip the rest of the input line,
   abort ;                            \ then abort
 
 : ?n ( n -- )                 \ operand-count guard
-  depth over 1 + < if ." -? ops " asm-abort then drop ;
+  depth over 1 + < if ." -? ops" asm-abort then drop ;
 
 \ ---- operand validators (operand checked BEFORE the cell is written) ----
 : ?rk ( p -- r )              \ register operand 0..15
-  dup 0 < over 15 > or if ." -? reg " asm-abort then ;
+  dup 0 < over 15 > or if ." -? reg" asm-abort then ;
 : ?imm12 ( n -- n )           \ plain ldr/str offset 0..4095
-  dup 0 < over 4095 > or if ." -? imm " asm-abort then ;
+  dup 0 < over 4095 > or if ." -? imm" asm-abort then ;
 : ?imm8r ( n -- n )           \ halfword offset 0..255
-  dup 0 < over 255 > or if ." -? imm " asm-abort then ;
+  dup 0 < over 255 > or if ." -? imm" asm-abort then ;
 : ?imm5 ( n -- n )            \ shift amount 0..31
-  dup 0 < over 31 > or if ." -? imm " asm-abort then ;
+  dup 0 < over 31 > or if ." -? imm" asm-abort then ;
 : ?imm16 ( n -- n )           \ bkpt immediate 0..65535
-  dup 0 < over 65535 > or if ." -? imm " asm-abort then ;
+  dup 0 < over 65535 > or if ." -? imm" asm-abort then ;
 : ?mask ( m -- m )            \ ldm/stm register mask / cps AIF mask 0..65535
-  dup 0 < over 65535 > or if ." -? reg " asm-abort then ;
+  dup 0 < over 65535 > or if ." -? reg" asm-abort then ;
 
 \ ---- rotated immediates (imm32: 8-bit value ror even 0..30) ----
 : ror32 ( n s -- n' )
   dup 0= if drop exit then
   >r dup r@ rshift swap r> 32 - lshift or ;
 : ?imm32 ( n -- op2 )
-  dup 0< if ." -? imm " asm-abort then
+  dup 0< if ." -? imm" asm-abort then
   16 0 do
     dup i 2 * ror32 dup 255 > 0= if i 8 * swap or swap drop unloop exit then
     drop
   loop
-  ." -? imm " asm-abort ;
+  ." -? imm" asm-abort ;
 
 \ ---- operand-2 encode ----
 \ # flags the number under it ( bit 268435456 ): immediate (rotated imm32)
@@ -242,11 +242,11 @@ create lm 0 ,       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
 \ ---- branches ----
 : b, ( t -- )
   1 ?n here 8 + -
-  dup abs 33554432 > if ." -? branch " asm-abort then
+  dup abs 33554432 > if ." -? branch" asm-abort then
   2 rshift 16777215 and 167772160 or emitc ;
 : bl, ( t -- )
   1 ?n here 8 + -
-  dup abs 33554432 > if ." -? branch " asm-abort then
+  dup abs 33554432 > if ." -? branch" asm-abort then
   2 rshift 16777215 and 184549376 or emitc ;
 : bx, ( p -- ) 1 ?n ?rk 19922704 or emitc ;
 : next ( -- ) nextv @ b, ;       \ branch to the seed NEXT

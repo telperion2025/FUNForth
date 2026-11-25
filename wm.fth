@@ -185,7 +185,7 @@ create mb-x 0 ,
   key? if key wm-key then ;
 1 task: wm-ua
 : wm-loop ( -- ) begin wm-poll yield again ;
-: wm-start ( -- ) ' wm-loop wm-ua @ spawn ;
+: wm-start ( -- ) ['] wm-loop wm-ua @ spawn ;
 
 : wm-init ( -- )
   0 wm-list ! 0 wm-focus ! 0 wm-drag ! 0 wm-redraw-pend ! 0 key-st !
