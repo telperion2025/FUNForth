@@ -2012,11 +2012,13 @@ dq_compile:
     str     r1, [r7], #4                @ len
     mov     r5, r1                      @ r5 = len (counter)
 8:  cmp     r5, #0
-    beq     dq_done
+    beq     9f
     ldrb    r3, [r0], #1
     strb    r3, [r7], #1
     sub     r5, r5, #1
     b       8b
+9:  add     r7, r7, #3                  @ pad HERE to cell boundary: control-flow
+    bic     r7, r7, #3                  @ targets patch to HERE and must stay aligned
 dq_done:
     pop     {r5, r8, lr}
     b       next
