@@ -72,9 +72,9 @@ ok> ' lsbuf pfa lsm .
 5 ok
 ok> create swp-a 111 ,
  ok
-ok> code swpt r0 tos-pop r1 222 # mov, ' swp-a pfa r0 r1 swp, r1 tos-push next end-code
+ok> code swpt r0 tos-pop r2 tos-pop r1 222 # mov, r2 r0 r1 swp, r1 tos-push next end-code
  ok
-ok> 55 swpt .
+ok> ' swp-a pfa 55 swpt .
 111 ok
 ok> swp-a @ .
 55 ok

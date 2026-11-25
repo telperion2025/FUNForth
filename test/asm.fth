@@ -34,8 +34,8 @@ create lsbuf 8 allot
 code lsm r0 tos-pop r1 5 # mov, ib r0 2 stm, r0 2 ldm, r1 tos-push next end-code
 ' lsbuf pfa lsm .
 create swp-a 111 ,
-code swpt r0 tos-pop r1 222 # mov, ' swp-a pfa r0 r1 swp, r1 tos-push next end-code
-55 swpt .
+code swpt r0 tos-pop r2 tos-pop r1 222 # mov, r2 r0 r1 swp, r1 tos-push next end-code
+' swp-a pfa 55 swpt .
 swp-a @ .
 code mlat r0 tos-pop r1 tos-pop r2 tos-pop r3 r0 r2 r1 mla, r3 tos-push next end-code
 3 4 5 mlat .
