@@ -109,4 +109,4 @@ test-host:
 clean:
 	rm -rf build $(OBJ) kernel.elf kernel.img
 
-.PHONY: all run test test-fb test-sd test-tasks test-preempt test-asm test-gui test-term test-hello test-host clean
+.PHONY: all run test test-fb test-sd test-tasks test-preempt test-asm test-gui test-term test-hello test-probe test-host clean
