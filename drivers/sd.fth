@@ -43,7 +43,8 @@ create sd-hc 0 ,
   ;
 
 create sdbuf 512 allot
-create load-buf 8192 allot
+create load-buf 65536 allot
+create lb-cap 65535 ,                              \ max file bytes (NUL needs 1)
 
 \ FAT32: BPB spc@13 res@14 nfats@16 fatsz32@36 rootclus@44
 create fat-spc 0 ,
@@ -130,7 +131,8 @@ create fat-stop 0 ,
 : load-file ( a len -- )                           \ load+interpret file named a len
   2dup mkname
   fat-find dup 0= if drop ." -? " type cr exit then
-  nip nip
+  dup 28 + @ dup lb-cap @ > if ." -? big " cr 2drop 2drop exit then
+  drop nip nip
   load-buf fat-read load-buf + 0 swap c!          \ NUL-terminate
   load-buf interpret ;
 
@@ -143,7 +145,8 @@ create boot-buf 2048 allot
 : file-sum ( -- n )                                \ checksum of file named next
   word count 2dup mkname
   fat-find dup 0= if drop ." -? " type cr 0 exit then
-  nip nip
+  dup 28 + @ dup lb-cap @ > if ." -? big " cr 2drop 2drop 0 exit then
+  drop nip nip
   load-buf fat-read >r
   0
   r> 0 do load-buf i + c@ + loop ;

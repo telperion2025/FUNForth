@@ -443,6 +443,10 @@ Per-milestone definition (artifacts / behavior / acceptance):
   Seed fixes this milestone: `allot` and `header_create` keep HERE 4-aligned (odd
   `allot`/`c,` counts corrupted the next header's link -> dictionary cycle);
   `interpret` saves/restores `in_ptr` on a small bss stack so `load` nests.
+  `load-buf` is 64 KB (`lb-cap` 65535): files up to 64 KB load safely; larger
+  files are refused with `-? big` instead of overflowing the heap (asm.fth is
+  19 KB and overflowed the old 8 KB buffer, hanging `load` in a corrupted
+  dictionary).
 - **M13 Multitasker.** DONE. Artifacts: seed asm `pause` (save r4/r13/r10/r5/r8/
   in_ptr/exec_idx of the current 96-byte user area, scan the 64-slot ring for the
   next ready|run slot, restore; user-area cells per v1.0 6: 0 task# 1 ps0 2 psp
