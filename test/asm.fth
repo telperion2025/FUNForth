@@ -1,6 +1,6 @@
 \ M15 t-asm: assembler core (code words, run, decompile, error)
 load asm.fth
-code double r0 tos-pop r0 r0 add, r0 tos-push next end-code
+code double r0 tos-pop r0 r0 r0 add, r0 tos-push next end-code
 21 double .
 code forty2 r0 42 # mov, r0 tos-push next end-code
 forty2 .
@@ -40,7 +40,7 @@ code mlat r0 tos-pop r1 tos-pop r2 tos-pop r3 r0 r2 r1 mla, r3 tos-push next end
 3 4 5 mlat .
 code umt r0 tos-pop r1 tos-pop r2 r3 r0 r1 umull, r2 tos-push r3 tos-push next end-code
 6 7 umt . .
-code litw 65280 lit, r0 swap # mov, r0 tos-push next end-code
+code litw 65280 lit, r0 tos-pop r0 tos-push next end-code
 litw h.
 code misc 0 bkpt, dsb, dmb, isb, 128 cpsid, 128 cpsie, next end-code
 see misc

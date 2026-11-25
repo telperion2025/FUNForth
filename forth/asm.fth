@@ -47,7 +47,7 @@ create lm 0 ,       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
   abort ;                            \ then abort
 
 : ?n ( n -- )                 \ operand-count guard
-  depth over 1 + < if ." -? ops " asm-abort then ;
+  depth over 1 + < if ." -? ops " asm-abort then drop ;
 
 \ ---- operand validators (operand checked BEFORE the cell is written) ----
 : ?rk ( p -- r )              \ register operand 0..15
@@ -157,10 +157,10 @@ create lm 0 ,       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
   2097296 ao1 @ 65536 * or ao3 @ 4096 * or ao2 @ 256 * or swap or emitc ;
 : umull, ( lo hi rm rs -- )
   4 ?n ao3 ! ao2 ! swap ao1 !
-  8388752 swap 16 lshift or ao1 @ 4096 * or ao2 @ 256 * or ao3 @ or emitc ;
+  8388752 swap 16 lshift or ao1 @ 4096 * or ao3 @ 256 * or ao2 @ or emitc ;
 : smull, ( lo hi rm rs -- )
   4 ?n ao3 ! ao2 ! swap ao1 !
-  12583056 swap 16 lshift or ao1 @ 4096 * or ao2 @ 256 * or ao3 @ or emitc ;
+  12583056 swap 16 lshift or ao1 @ 4096 * or ao3 @ 256 * or ao2 @ or emitc ;
 : nop, 27262976 emitc ;       \ mov r0, r0
 
 \ ---- shifts ( dest src amount -- ; imm5, dropped into a mov encoding ) ----
@@ -237,7 +237,7 @@ create lm 0 ,       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
   1 ?n ?rk 4096 * 93585408 or emitc 42221572 emitc ;
 \ tos-push r: sub r4,r4,#4 / str r,[r4]   ( reg -> new TOS cell )
 : tos-push ( r -- )
-  1 ?n ?rk 4096 * 92536832 or 38027268 swap emitc emitc ;
+  1 ?n ?rk 4096 * 92536832 or >r 38027268 emitc r> emitc ;
 
 \ ---- branches ----
 : b, ( t -- )

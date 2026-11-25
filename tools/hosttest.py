@@ -378,7 +378,7 @@ def disasm(cl, nextv=0x8100):
             if tgt == nextv:
                 parts.append("b next")
             else:
-                parts.append("b %x" % tgt)
+                parts.append("b %08X" % tgt)
             i += 1
             continue
         if (ci & 0x0FFF0FFF) == 0x05940000 and (c2 & 0x0FFFFFFF) == 0x02844004:
@@ -396,7 +396,7 @@ def disasm(cl, nextv=0x8100):
         if (ci & 0x0FFFFFFF) == 0x0E070F9B: parts.append("dmb"); i += 1; continue
         if (ci & 0x0FF00000) == 0x01000000:
             m = "cpsid" if ci & 0x40000 else "cpsie"
-            parts.append("%s %x" % (m, ci & 0x1C0)); i += 1; continue
+            parts.append("%s %08X" % (m, ci & 0x1C0)); i += 1; continue
         if (ci & 0x0E000000) == 0x02000000 and ((ci >> 8) & 15) == 0:
             op = (ci >> 21) & 15; rd = (ci >> 12) & 15; rn = (ci >> 16) & 15; imm = ci & 0xFF
             names = {13: "mov", 15: "mvn", 4: "add", 2: "sub", 10: "cmp", 0: "and", 12: "orr", 1: "eor", 14: "bic"}
