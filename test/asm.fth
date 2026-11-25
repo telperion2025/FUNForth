@@ -31,8 +31,8 @@ create cell2 0 ,
 code deref2 r1 0 # mov, r0 tos-pop r0 r1 r0 ldrr, r0 tos-push next end-code
 cell2 deref2 .
 create lsbuf 8 allot
-code lsm ' lsbuf pfa lit, r2 tos-pop r1 5 # mov, ib r2 2 stm, r2 2 ldm, r1 tos-push next end-code
-lsm .
+code lsm r0 tos-pop r1 5 # mov, ib r0 2 stm, r0 2 ldm, r1 tos-push next end-code
+' lsbuf pfa lsm .
 create swp-a 111 ,
 code swpt r0 tos-pop r1 222 # mov, ' swp-a pfa r0 r1 swp, r1 tos-push next end-code
 55 swpt .

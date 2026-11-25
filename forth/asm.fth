@@ -265,7 +265,8 @@ create asm-dead 0 ,
 : isb, -301527147 emitc ;        \ 0x0E070F95 : mcr p15,0,r0,c7,c5,4
 : cpsid, ( m -- ) 1 ?n ?mask -250871808 or ,safe ;   \ 0xF10C0000 | AIF (cond 0xF fixed)
 : cpsie, ( m -- ) 1 ?n ?mask -251133952 or ,safe ;   \ 0xF1080000 | AIF
-: lit, ( n -- ) asm-dead @ if drop exit then ['] lit , , ;    \ inline literal pair (pool = inline lit,)
+: lit, ( n -- ) asm-dead @ if drop exit then
+  3852075012 , 3796123652 , 3850633216 , , ;    \ ldr r0,[r10],#4 / sub r4,#4 / str r0,[r4] / n
 
 \ ---- labels ( backward refs only ) ----
 \ label <name>: word whose body pushes its marked assembly address.

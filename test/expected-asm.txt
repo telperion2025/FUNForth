@@ -66,9 +66,9 @@ ok> cell2 deref2 .
 77 ok
 ok> create lsbuf 8 allot
  ok
-ok> code lsm ' lsbuf pfa lit, r2 tos-pop r1 5 # mov, ib r2 2 stm, r2 2 ldm, r1 tos-push next end-code
+ok> code lsm r0 tos-pop r1 5 # mov, ib r0 2 stm, r0 2 ldm, r1 tos-push next end-code
  ok
-ok> lsm .
+ok> ' lsbuf pfa lsm .
 5 ok
 ok> create swp-a 111 ,
  ok

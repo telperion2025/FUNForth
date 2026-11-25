@@ -120,7 +120,7 @@ create mb-x 0 ,
   wm-win @ win-x@ wm-win @ win-y@ wm-win @ win-w@ wm-win @ win-x@ + 1- wm-win @ win-y@ wm-win @ win-h@ + 1- fillrect0
   wm-win @ wm-chrome
   clip>
-  wm-win @ win-redraw@ execute
+  wm-win @ dup win-redraw@ execute
   -1 ;
 
 : wm-redraw-all ( -- )
