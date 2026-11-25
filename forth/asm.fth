@@ -80,7 +80,7 @@ create lm 0 ,       \ ldm/stm mode: 0=ia 1=ib 2=da 3=db
 \ ( 0x02000000 | op2 ) else register 0..15.
 : mk-op2 ( p -- w2 )
   dup 268435456 and if
-    ?imm32 33554432 or
+    268435455 and ?imm32 33554432 or
   else
     ?rk
   then ;
