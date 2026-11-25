@@ -99,6 +99,9 @@ test-hello: kernel.elf build/sd.img
 	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/hello.fth --wait-for "ok> " --expected test/expected-hello.txt --screendump build/hello.ppm --idle 3 --timeout 90
 	python3 tools/fbcheck.py build/hello.ppm test/expected-hello-fb.txt
 
+test-probe: kernel.elf build/sd.img
+	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/probe.fth --wait-for "ok> " --timeout 30
+
 # host-side checks, no ARM toolchain/QEMU needed
 test-host:
 	python3 tools/hosttest.py

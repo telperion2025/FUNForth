@@ -29,7 +29,7 @@ ok> ['] redraw1 win1 @ win-redraw!
 ok> 100 win1 @ win-x! 60 win1 @ win-y! win1 @ win-open
  ok
 ok> win1 @ win-x@ . win1 @ win-y@ .
-100 60 ok
+10060 ok
 ok> 150 100 win-new win2 !
  ok
 ok> word Two count win2 @ win-title!
@@ -53,9 +53,9 @@ ok> 27 wm-key 91 wm-key 65 wm-key
 ok> 13 wm-key
  ok
 ok> win2 @ win-x@ . win2 @ win-y@ .
-150 100 ok
+150100 ok
 ok> win1 @ win-x@ . win1 @ win-y@ .
-100 60 ok
+10060 ok
 ok> \ TAB cycles focus to win1
  ok
 ok> 9 wm-key

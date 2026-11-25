@@ -65,7 +65,7 @@ ok> 27 wm-key 91 wm-key 66 wm-key
 ok> 13 wm-key
  ok
 ok> t3 @ win-x@ . t3 @ win-y@ .
-328 32 ok
+32832 ok
 ok> \ resize t3 by one cell right and one cell down
  ok
 ok> term-resize-start
@@ -77,7 +77,7 @@ ok> 0 1 term-arrow
 ok> term-resize-end
  ok
 ok> t3 @ win-w@ . t3 @ win-h@ .
-72 80 ok
+7280 ok
 ok> \ close t1 and t2 (allowed); t3 is the last terminal and must be refused
  ok
 ok> t1 @ win-close
