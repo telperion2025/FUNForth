@@ -12,7 +12,14 @@ oled-init
 oled-clear
 5 7 1 oled!
 5 7 oled@ .
+depth .
+oled-fb 5 + c@ h. cr
+o-x @ . space o-y @ . space o-v @ . cr
+oled-fb 138 + c@ h. cr
 65 8 8 oled-char
+oled-fb 138 + c@ h. cr
+oled-fb 137 + c@ h. cr
+oled-fb 5 + c@ h. cr
 oled-sum .
 oled-flush
 ." OLED-OK" cr
