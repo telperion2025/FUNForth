@@ -1459,11 +1459,13 @@ mmu_on_code:
     mov     r3, r1, lsl #20             @ section base = index << 20
     cmp     r1, #512
     bhs     3f
-    orr     r3, r3, #0xC1E              @ RAM: type=10, B=1 C=1, AP=11, domain 0
+    orr     r3, r3, #0xC00
+    orr     r3, r3, #0x1E              @ RAM: type=10, B=1 C=1, AP=11, domain 0
     b       4f
 3:  cmp     r1, #1024
     bhs     5f
-    orr     r3, r3, #0xC16              @ device: type=10, B=1, XN=1, AP=11, domain 0
+    orr     r3, r3, #0xC00
+    orr     r3, r3, #0x16              @ device: type=10, B=1, XN=1, AP=11, domain 0
     b       4f
 5:  mov     r3, #0                      @ unmapped
 4:  str     r3, [r0], #4
@@ -1471,7 +1473,8 @@ mmu_on_code:
     b       1b
 2:  ldr     r0, =0x4000
     mcr     p15, 0, r0, c2, c0, 0       @ TTBR0
-    mov     r0, #0xFFFFFFFF
+    mov     r0, #0
+    subs    r0, r0, #1
     mcr     p15, 0, r0, c3, c0, 0       @ DACR: all domains manager
     mov     r0, #0
     mcr     p15, 0, r0, c8, c7, 0       @ invalidate TLB
@@ -1487,10 +1490,9 @@ mmu_on_code:
 defword mmu_q, "mmu@"                   @ ( -- f ) -1 if MMU enabled
 mmu_q_code:
     mrc     p15, 0, r0, c1, c0, 0
-    and     r0, r0, #1
-    cmp     r0, #1
-    moveq   r0, #-1
-    movne   r0, #0
+    tst     r0, #1
+    mvneq   r0, #0
+    moveq   r0, #0
     sub     r4, r4, #4
     str     r0, [r4]
     b       next
