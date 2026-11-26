@@ -40,7 +40,7 @@ create tr-w 0 ,
   >r
   dup 13 = over 10 = or if drop r@ term-newline r> drop exit then
   dup 8 = if drop r@ term-bs r> drop exit then
-  r@ 56 + r@ 52 + @ r@ 40 + @ * r@ 48 + @ + c!
+  r@ 56 + r@ 52 + @ r@ 40 + @ * r@ 48 + @ + + c!
   r@ 48 + dup @ 1+ swap !                   \ cx++
   r@ 48 + @ r@ 40 + @ = if r@ term-newline then
   r> drop
