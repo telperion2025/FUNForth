@@ -1481,7 +1481,9 @@ mmu_on_code:
     mcr     p15, 0, r0, c7, c5, 0       @ invalidate I-cache
     mcr     p15, 0, r0, c7, c6, 0       @ invalidate D-cache
     mrc     p15, 0, r0, c1, c0, 0
-    orr     r0, r0, #0x1005             @ MMU (bit0) + D-cache (bit2) + I-cache (bit12)
+    orr     r0, r0, #0x1000            @ I-cache (bit12)
+    orr     r0, r0, #4                 @ D-cache (bit2)
+    orr     r0, r0, #1                 @ MMU (bit0)
     mcr     p15, 0, r0, c1, c0, 0
     mov     r0, #0
     mcr     p15, 0, r0, c7, c10, 4      @ DSB
