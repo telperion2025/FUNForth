@@ -109,6 +109,7 @@ test-probe: kernel.elf build/sd.img
 	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p25.fth --wait-for "ok> " --timeout 25
 	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p26.fth --wait-for "ok> " --timeout 25
 	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p27.fth --wait-for "ok> " --timeout 25
+	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p28.fth --wait-for "ok> " --timeout 25
 
 # host-side checks, no ARM toolchain/QEMU needed
 test-host:
