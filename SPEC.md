@@ -222,6 +222,39 @@ honored, entry 0x8000). Real hardware still boots the raw `kernel.img` at 0x8000
 via the GPU firmware. `make run` / `make test` use `kernel.elf`; `kernel.img`
 remains the SD-card artifact.
 
+### Delta D7 (review pass): CI is the acceptance gate
+
+The full suite runs in GitHub Actions (`.github/workflows/test.yml`): a `host`
+job (`python3 tools/hosttest.py`, no toolchain needed) and a `qemu` job on
+`ubuntu-latest` that installs `gcc-arm-none-eabi` + `qemu-system-arm` (QEMU 8.2)
+and runs `make -k test test-sd test-fb test-tasks test-preempt test-asm test-gui
+test-term test-hello`. Each QEMU invocation also writes the raw UART transcript
+to `build/transcript-<script>.log`, and the job uploads all of `build/` as the
+`qemu-transcripts` artifact (`if: always()`), so a hang is diagnosable from the
+last echoed line without a local QEMU. A milestone is done when its target is
+green in this workflow, not only on a developer's local QEMU.
+
+### Delta D8 (review pass): Forth-level rules the seed forces
+
+- `r@` inside a `do` loop reads the loop parameters (`(do)` pushes them on the
+  return stack), not an outer `>r` value; inside loops use a staging variable
+  (`term-redraw`, `gui-press` do this).
+- `' name` pushes the xt at the top level; `['] name` is immediate-only and
+  belongs in colon bodies (at the top level it compiles into HERE and pushes
+  nothing).
+- `rot` needs three items; on a two-item `( dx dy -- )` stack it pulls in
+  baseline junk (`wm-arrow`, `term-arrow` are written without it).
+- asm.fth: `lit,` emits an inline ARM literal sequence (code words run linearly;
+  an embedded xt cell is invalid there); `label` inside a code body interleaves
+  a header into the code stream, so backward branches use the
+  `here >r ... ne r> b,` idiom; `asm-abort` rolls HERE back to `code-h0`,
+  neutralizes the half-built header (cfa := abort's cfa, since `latest` lives
+  in r6 with no Forth-visible writer), skips the rest of the input line and
+  clears STATE; `?n` counts absolute `depth`, so tests that rely on the guard
+  `abort` first to reset the stack; `see` of a colon word ends with
+  `2drop ." ;"`. The seed keeps HERE 4-aligned after `\."` string compiles so
+  control-flow patch targets stay aligned on ARMv6.
+
 ## 12. Milestones v2.0 (phased, each one branch = one PR)
 
 Tracking table (check off in the PR that completes the milestone):
@@ -629,6 +662,14 @@ Per-milestone definition (artifacts / behavior / acceptance):
 - **M25 Release.** Artifacts: `doc/manual.fth` (manual as FORTH comments + help
   words), `utils/probe.fth`, demo pack; full `make test` green on raspi0 (and
   raspi3ap where supported); 1 h hardware soak. Acceptance: CI-style full run.
+
+Deferred to v2.x (accepted shortcomings of the v2.0 line, per the review pass):
+M20-M25 as tabled above (I2C/OLED/RTC, USB HID, SMP, IRQ latency bound,
+MMU/save-image, release soak); D4 `:<name>` label token syntax (needs a seed
+tokenizer hook; `label <name>` + `'<name> mark`, backward-only, stays); D5 a
+true `latest!` unlink (impossible from Forth; `asm-abort` neutralizes the aborted
+header instead); hardware-only acceptance for M20/M22. M0-M19 are green in CI
+(Delta D7).
 
 ## 13. Error handling (carried from v1.0)
 
