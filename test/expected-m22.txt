@@ -1,0 +1,22 @@
+FUNForth seed 0.1 ok> \ M22: SMP cores count + send/recv ring (QEMU raspi0: single-core path)
+ ok
+ok> load smp.fth
+ ok
+ok> cores .
+1 ok
+ok> 42 0 send
+ ok
+ok> 0 recv . .
+-142 ok
+ok> 7 0 send
+ ok
+ok> 0 5 recvx . .
+-17 ok
+ok> 0 recv . .
+00 ok
+ok> corelist .
+1 2 2 ok
+ok> ." M22-DONE" cr
+M22-DONE
+ ok
+ok>

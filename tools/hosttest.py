@@ -172,7 +172,7 @@ check("forth-lint", lint_ok, "%d files" % len(FORTH_FILES))
 ORDER_FILES = (["forth/core.fth", "drivers/sd.fth", "drivers/timer.fth",
                 "drivers/gpio.fth", "drivers/i2c.fth", "drivers/rtc-ds3231.fth", "drivers/mailbox.fth", "drivers/fb.fth",
                 "drivers/font8x16.fth", "drivers/vdi.fth",
-                "drivers/console-fb.fth", "drivers/ssd1306.fth", "forth/tasks.fth", "forth/asm.fth",
+                "drivers/console-fb.fth", "drivers/ssd1306.fth", "forth/tasks.fth", "forth/smp.fth", "forth/asm.fth",
                 "wm.fth", "term.fth", "gui.fth", "hello.fth"])
 
 def file_defs(path):
