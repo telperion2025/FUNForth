@@ -16,10 +16,11 @@ depth .
 oled-fb 5 + c@ h. cr
 o-x @ . space o-y @ . space o-v @ . cr
 oled-fb 138 + c@ h. cr
+oled-fb h. cr
+oled-fb 1024 + c@ h. cr
 65 8 8 oled-char
-oled-fb 138 + c@ h. cr
-oled-fb 137 + c@ h. cr
-oled-fb 5 + c@ h. cr
+oled-fb 1024 0 do oled-fb i + c@ 0<> if i h. space oled-fb i + c@ h. cr then loop
+oled-fb o-y @ 8 / 128 * o-x @ + + h. cr
 oled-sum .
 oled-flush
 ." OLED-OK" cr
