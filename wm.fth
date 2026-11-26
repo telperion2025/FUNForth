@@ -49,10 +49,12 @@ create mb-x 0 ,
   drop
   wm-request-redraw ;
 
+: win-nop ( win -- ) drop ;
 : win-new ( w h -- win )
   win-next @ dup >r 40 + win-next !
   r@ 40 0 fill
   r@ 20 + ! r@ 16 + !
+  ['] win-nop r@ 24 + !
   ['] wm-do-close r@ 36 + !
   r> ;
 : win-close ( win -- ) dup 36 + @ execute ;   \ via close-xt (may refuse)
