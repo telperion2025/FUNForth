@@ -15,6 +15,8 @@ create o-x 0 , create o-y 0 , create o-v 0 ,
   oled-fb o-y @ 8 / 128 * o-x @ + + @
   o-y @ 8 mod 1 swap lshift and 0= 0= ;
 : oled-clear ( -- ) oled-fb 1024 0 fill ;
+create oled-acc 0 ,
+: oled-sum ( -- n ) 0 oled-acc ! oled-fb 1024 0 do oled-fb i + c@ oled-acc @ + oled-acc ! loop oled-acc @ ;
 create oc-c 0 , create oc-x 0 , create oc-y 0 ,
 : oled-char ( c x y -- )  \ draw 8x8 (top half of the 8x16 glyph) at pixel x,y
   oc-y ! oc-x ! oc-c !

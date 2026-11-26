@@ -71,7 +71,7 @@ create fat-dest 0 ,
 
 : fat-next ( clus -- next )                        \ FAT32 entry, 28-bit
   4 * dup 9 rshift fat-res @ + sdbuf sd-read
-  sdbuf + @ 268435455 and ;
+  sdbuf swap 511 and + @ 268435455 and ;          \ entry offset within the sector
 
 create name11 11 allot
 create namepos 0 ,

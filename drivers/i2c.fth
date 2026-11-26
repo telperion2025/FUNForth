@@ -20,7 +20,7 @@
 
 create i2c-b 0 , create i2c-n 0 , create i2c-a 0 , create i2c-r 0 ,
 : i2c-wait ( -- s )       \ poll S.DONE up to 100k times; S if done, else 0
-  100000 0 do 4 i2c@ 2 and if 4 i2c@ unloop exit then loop 0 ;
+  2000 0 do 4 i2c@ 2 and if 4 i2c@ unloop exit then loop 0 ;
 : i2c-xfer ( buf len slave read? -- ok )   \ ok=-1 acked, 0 nak/timeout
   i2c-r ! i2c-a ! i2c-n ! i2c-b !
   i2c-a @ 1 lshift i2c-r @ or 12 i2c!      \ A = slave<<1 | read?
