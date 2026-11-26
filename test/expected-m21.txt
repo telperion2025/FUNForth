@@ -1,0 +1,38 @@
+FUNForth seed 0.1 ok> \ M21: USB HID boot-protocol decoders + report ring (offline unit test)
+ ok
+ok> load usbhid.fth
+ ok
+ok> usb-init .
+0 ok
+ok> create r1 8 allot
+ ok
+ok> create r2 8 allot
+ ok
+ok> 2 r1 c! 0 r1 1+ c! 4 r1 2+ c!
+ ok
+ok> r1 kbd-decode . .
+24 ok
+ok> 1 r2 c! 5 r2 1+ c! 253 r2 2+ c!
+ ok
+ok> r2 mouse-decode . . .
+-351 ok
+ok> r1 usb-push
+ ok
+ok> r2 usb-push
+ ok
+ok> usb-buf usb-pop .
+-1 ok
+ok> usb-buf kbd-decode . .
+24 ok
+ok> usb-buf usb-pop .
+-1 ok
+ok> usb-buf mouse-decode . . .
+-351 ok
+ok> usb-buf usb-pop .
+0 ok
+ok> keyusb .
+0 ok
+ok> ." M21-DONE" cr
+M21-DONE
+ ok
+ok>
