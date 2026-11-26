@@ -17,7 +17,7 @@
 330 62 000000
 338 48 FFFFFF
 340 48 FFFFFF
-341 48 000000
+341 48 FFFFFF
 # t3 content background
 380 100 000000
 # closed t1/t2 areas are black
