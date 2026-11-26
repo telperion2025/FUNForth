@@ -50,6 +50,7 @@ code down r0 5 # mov, here >r r0 r0 1 # sub, r0 0 # cmp, ne r> b, r0 tos-push ne
 down .
 create hsave2 0 ,
 here hsave2 !
+abort
 code bad2 r0 mov,
 hsave2 @ here = .
 bad2

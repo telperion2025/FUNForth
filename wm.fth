@@ -105,7 +105,7 @@ create mb-x 0 ,
   4 mb-x !
   wm-list @ begin dup while
     dup win-title@ mb-x @ 0 text
-    win-title@ nip 8 * 16 + mb-x +!
+    dup win-title@ nip 8 * 16 + mb-x +!
     @
   repeat drop ;
 
@@ -120,7 +120,7 @@ create mb-x 0 ,
   wm-win @ win-x@ wm-win @ win-y@ wm-win @ win-w@ wm-win @ win-x@ + 1- wm-win @ win-y@ wm-win @ win-h@ + 1- fillrect0
   wm-win @ wm-chrome
   clip>
-  wm-win @ dup win-redraw@ execute
+  wm-win @ win-redraw@ execute
   -1 ;
 
 : wm-redraw-all ( -- )

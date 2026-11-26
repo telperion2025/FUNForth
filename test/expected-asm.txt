@@ -106,6 +106,8 @@ ok> create hsave2 0 ,
  ok
 ok> here hsave2 !
  ok
+ok> abort
+ ok
 ok> code bad2 r0 mov,
 -? ops ok
 ok> hsave2 @ here = .
