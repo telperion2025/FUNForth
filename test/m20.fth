@@ -11,11 +11,15 @@ i2c-pins
 oled-init
 oled-clear
 5 7 1 oled!
-5 7 oled@ .
-: t-addr oled-fb o-y @ 8 / 128 * o-x @ + + ;
-t-addr h. cr
+o-x @ . space o-y @ . space o-v @ . cr
 o-dbg h. cr
 oled-fb h. cr
+: t-addr oled-fb o-y @ 8 / 128 * o-x @ + + ;
+t-addr h. cr
+load asm.fth
+see oled-addr
+see t-addr
+5 7 oled@ .
 65 8 8 oled-char
 oled-sum .
 oled-flush
