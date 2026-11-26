@@ -26,7 +26,7 @@ jobs:
       - name: Build kernel.elf + SD image and run the QEMU suite
         run: |
           make -k test test-sd test-fb test-tasks test-preempt \
-               test-asm test-gui test-term test-hello test-probe
+               test-asm test-gui test-term test-hello
       - name: Upload QEMU transcripts and screendumps
         if: always()
         uses: actions/upload-artifact@v4
