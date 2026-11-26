@@ -43,7 +43,7 @@ def strip_line(line):
     return line
 
 FORTH_FILES = []
-for d in ("forth", "drivers"):
+for d in ("forth", "drivers", "utils", "doc"):
     for f in sorted(os.listdir(d)):
         if f.endswith(".fth"):
             FORTH_FILES.append(os.path.join(d, f))

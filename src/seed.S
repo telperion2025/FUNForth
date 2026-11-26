@@ -1446,6 +1446,54 @@ pat_code:
     str     r2, [r1, #0x24]             @ PM_WDOG = 0 (disable/kick)
     str     r2, [r1, #0x1C]             @ PM_RSTC = password (clear reset cause)
     b       next
+
+@ ---- M24: identity-mapped MMU + caches (ARMv6 short descriptors) ----
+@ 16 KB page table at 0x4000 (below the 0x8000 kernel): sections 0..511 RAM
+@ (normal, WB), 512..1023 peripherals (device, XN), rest unmapped.
+defword mmu_on, "mmu-on"                @ ( -- ) enable MMU + I/D caches, identity map
+mmu_on_code:
+    ldr     r0, =0x4000                 @ page table base (16 KB aligned)
+    mov     r1, #0
+1:  cmp     r1, #4096
+    bhs     2f
+    mov     r3, r1, lsl #20             @ section base = index << 20
+    cmp     r1, #512
+    bhs     3f
+    orr     r3, r3, #0xC1E              @ RAM: type=10, B=1 C=1, AP=11, domain 0
+    b       4f
+3:  cmp     r1, #1024
+    bhs     5f
+    orr     r3, r3, #0xC16              @ device: type=10, B=1, XN=1, AP=11, domain 0
+    b       4f
+5:  mov     r3, #0                      @ unmapped
+4:  str     r3, [r0], #4
+    add     r1, r1, #1
+    b       1b
+2:  ldr     r0, =0x4000
+    mcr     p15, 0, r0, c2, c0, 0       @ TTBR0
+    mov     r0, #0xFFFFFFFF
+    mcr     p15, 0, r0, c3, c0, 0       @ DACR: all domains manager
+    mov     r0, #0
+    mcr     p15, 0, r0, c8, c7, 0       @ invalidate TLB
+    mcr     p15, 0, r0, c7, c5, 0       @ invalidate I-cache
+    mcr     p15, 0, r0, c7, c6, 0       @ invalidate D-cache
+    mrc     p15, 0, r0, c1, c0, 0
+    orr     r0, r0, #0x1005             @ MMU (bit0) + D-cache (bit2) + I-cache (bit12)
+    mcr     p15, 0, r0, c1, c0, 0
+    mov     r0, #0
+    mcr     p15, 0, r0, c7, c10, 4      @ DSB
+    b       next
+
+defword mmu_q, "mmu@"                   @ ( -- f ) -1 if MMU enabled
+mmu_q_code:
+    mrc     p15, 0, r0, c1, c0, 0
+    and     r0, r0, #1
+    cmp     r0, #1
+    moveq   r0, #-1
+    movne   r0, #0
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
     .ltorg
 
 defword io_base, "io-base"

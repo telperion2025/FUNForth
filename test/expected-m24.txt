@@ -1,0 +1,26 @@
+FUNForth seed 0.1 ok> \ M24: MMU identity map + caches on; save-image/load-image RAM round trip
+ ok
+ok> load save-image.fth
+ ok
+ok> mmu@ .
+0 ok
+ok> mmu-on
+ ok
+ok> mmu@ .
+-1 ok
+ok> 1 2 + .
+3 ok
+ok> io-base h.
+20000000 ok
+ok> : m24w 777 ;
+ ok
+ok> save-image nip 0> .
+-1 ok
+ok> save-image load-image
+ ok
+ok> m24w .
+777 ok
+ok> ." M24-DONE" cr
+M24-DONE
+ ok
+ok>
