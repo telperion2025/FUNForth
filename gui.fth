@@ -15,7 +15,7 @@ create ev-head 0 , create ev-tail 0 ,
   ev-tail @ 1+ 16 mod ev-tail ! ;
 : event? ( -- f ) ev-head @ ev-tail @ <> ;
 : event@ ( -- key x y type )
-  ev-head @ 16 * ev-queue + dup >r
+  ev-head @ 16 * ev-queue + >r
   r@ @ r@ 4 + @ r@ 8 + @ r> 12 + @
   ev-head @ 1+ 16 mod ev-head ! ;
 
@@ -29,7 +29,7 @@ create ptr-x 0 , create ptr-y 0 , create ptr-btn 0 ,
 create full-save 8 16 * allot
 create fs 0 ,
 : win-full ( win -- )
-  dup >r
+  >r
   r@ 4 + @ 8 and if                       \ full -> restore
     r@ 4 + dup @ 8 invert and swap !
     r@ win-pool - 40 / 16 * full-save + fs !
@@ -85,7 +85,7 @@ create b-x 0 , create b-y 0 , create b-w 0 , create b-h 0 ,
   wm-focus @ win-y@ 16 + b-y @ + b-y !
   btn-cnt @ 8 < if
     btn-cnt @ 1+ btn-cnt !
-    btn-cnt @ 24 * btn-tab + dup >r
+    btn-cnt @ 24 * btn-tab + >r
     btn-t @ r@ 20 + !
     wm-focus @ r@ 16 + !
     b-h @ r@ 12 + !

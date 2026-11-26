@@ -99,22 +99,6 @@ test-hello: kernel.elf build/sd.img
 	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/hello.fth --wait-for "ok> " --expected test/expected-hello.txt --screendump build/hello.ppm --idle 3 --timeout 90
 	python3 tools/fbcheck.py build/hello.ppm test/expected-hello-fb.txt
 
-test-probe: kernel.elf build/sd.img
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p19.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p20.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p21.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p22.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p23.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p24.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p25.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p26.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p27.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p28.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p29.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p30.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p31.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p32.fth --wait-for "ok> " --timeout 25
-
 # host-side checks, no ARM toolchain/QEMU needed
 test-host:
 	python3 tools/hosttest.py
@@ -122,4 +106,4 @@ test-host:
 clean:
 	rm -rf build $(OBJ) kernel.elf kernel.img
 
-.PHONY: all run test test-fb test-sd test-tasks test-preempt test-asm test-gui test-term test-hello test-probe test-host clean
+.PHONY: all run test test-fb test-sd test-tasks test-preempt test-asm test-gui test-term test-hello test-host clean
