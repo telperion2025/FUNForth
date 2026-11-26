@@ -12,6 +12,7 @@ create ev-head 0 , create ev-tail 0 ,
   ev-tail @ 1+ 16 mod ev-head @ = if 2drop 2drop exit then   \ queue full: drop event
   ev-tail @ 16 * ev-queue + >r
   r@ 12 + ! r@ 8 + ! r@ 4 + ! r@ !
+  r> drop
   ev-tail @ 1+ 16 mod ev-tail ! ;
 : event? ( -- f ) ev-head @ ev-tail @ <> ;
 : event@ ( -- key x y type )
