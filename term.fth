@@ -12,9 +12,9 @@ create term-rsz 0 ,
 create tr-w 0 ,
 : term-redraw ( w -- )    \ r@ is unusable inside do loops (reads loop params)
   tr-w !
-  tr-w @ 44 @ 0 do                              \ rows
-    tr-w @ 40 @ 0 do                            \ cols
-      tr-w @ 56 + j tr-w @ 40 + @ * i + c@      \ buf[j*cols+i]
+  tr-w @ 44 + @ 0 do                              \ rows
+    tr-w @ 40 + @ 0 do                            \ cols
+      tr-w @ 56 + j tr-w @ 40 + @ * i + + c@      \ buf[j*cols+i]
       tr-w @ win-x@ i 8 * + tr-w @ win-y@ 16 + j 16 * + char
     loop
   loop ;
