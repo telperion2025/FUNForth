@@ -55,7 +55,7 @@ create mb-x 0 ,
   r@ 20 + ! r@ 16 + !
   ['] wm-do-close r@ 36 + !
   r> ;
-: win-close ( win -- ) dup 36 + @ swap execute ;   \ via close-xt (may refuse)
+: win-close ( win -- ) dup 36 + @ execute ;   \ via close-xt (may refuse)
 
 : wm-append ( win -- )            \ link at tail (top)
   dup wm-list @ 0= if drop wm-list ! exit then
