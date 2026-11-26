@@ -140,8 +140,8 @@ create mb-x 0 ,
 : wm-arrow ( dx dy -- )
   wm-drag @ 0= if 2drop exit then
   drag-outline
-  rot wm-dx @ + wm-dx !
   wm-dy @ + wm-dy !
+  wm-dx @ + wm-dx !
   drag-outline ;
 : wm-drag-commit ( -- )
   wm-drag @ 0= if exit then

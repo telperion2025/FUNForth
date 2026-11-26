@@ -365,15 +365,15 @@ create asm-dead 0 ,
     ci @ 12 rshift 15 and ao2 !
     ci @ 16 rshift 15 and ao3 !
     ci @ 255 and rv !
-    ao1 @ 13 = if ." mov " ao2 @ .reg space 35 emit rv @ . space 4 + 0 exit then
-    ao1 @ 15 = if ." mvn " ao2 @ .reg space 35 emit rv @ . space 4 + 0 exit then
-    ao1 @ 4 = if ." add " ao2 @ .reg space ao3 @ .reg space 35 emit rv @ . space 4 + 0 exit then
-    ao1 @ 2 = if ." sub " ao2 @ .reg space ao3 @ .reg space 35 emit rv @ . space 4 + 0 exit then
-    ao1 @ 10 = if ." cmp " ao3 @ .reg space 35 emit rv @ . space 4 + 0 exit then
-    ao1 @ 0 = if ." and " ao2 @ .reg space ao3 @ .reg space 35 emit rv @ . space 4 + 0 exit then
-    ao1 @ 12 = if ." orr " ao2 @ .reg space ao3 @ .reg space 35 emit rv @ . space 4 + 0 exit then
-    ao1 @ 1 = if ." eor " ao2 @ .reg space ao3 @ .reg space 35 emit rv @ . space 4 + 0 exit then
-    ao1 @ 14 = if ." bic " ao2 @ .reg space ao3 @ .reg space 35 emit rv @ . space 4 + 0 exit then
+    ao1 @ 13 = if ." mov " ao2 @ .reg space 35 emit space rv @ . space 4 + 0 exit then
+    ao1 @ 15 = if ." mvn " ao2 @ .reg space 35 emit space rv @ . space 4 + 0 exit then
+    ao1 @ 4 = if ." add " ao2 @ .reg space ao3 @ .reg space 35 emit space rv @ . space 4 + 0 exit then
+    ao1 @ 2 = if ." sub " ao2 @ .reg space ao3 @ .reg space 35 emit space rv @ . space 4 + 0 exit then
+    ao1 @ 10 = if ." cmp " ao3 @ .reg space 35 emit space rv @ . space 4 + 0 exit then
+    ao1 @ 0 = if ." and " ao2 @ .reg space ao3 @ .reg space 35 emit space rv @ . space 4 + 0 exit then
+    ao1 @ 12 = if ." orr " ao2 @ .reg space ao3 @ .reg space 35 emit space rv @ . space 4 + 0 exit then
+    ao1 @ 1 = if ." eor " ao2 @ .reg space ao3 @ .reg space 35 emit space rv @ . space 4 + 0 exit then
+    ao1 @ 14 = if ." bic " ao2 @ .reg space ao3 @ .reg space 35 emit space rv @ . space 4 + 0 exit then
   then
   ci @ 234881040 and 0 = if                   \ data, reg
     ci @ 21 rshift 15 and ao1 !
