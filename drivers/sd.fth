@@ -133,8 +133,11 @@ create fat-stop 0 ,
   fat-find dup 0= if drop ." -? " type cr exit then
   dup 28 + @ dup lb-cap @ > if ." -? big " cr 2drop 2drop exit then
   drop nip nip
-  load-buf fat-read load-buf + 0 swap c!          \ NUL-terminate
-  load-buf interpret ;
+  here >r                                         \ fresh per-load buffer (nested load-safe)
+  r@ fat-read                                     \ len
+  dup 1+ allot                                    \ reserve buf[0..len]
+  r@ + 0 swap c!                                  \ NUL-terminate
+  r> interpret ;
 
 : load ( -- ) word count load-file ;
 
