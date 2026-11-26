@@ -1,6 +1,6 @@
 FUNForth seed 0.1 ok> \ M24: MMU identity map + caches on; save-image/load-image RAM round trip
  ok
-ok> load save-image.fth
+ok> load saveimg.fth
  ok
 ok> mmu@ .
 0 ok
