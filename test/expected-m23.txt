@@ -1,4 +1,4 @@
-FUNForth seed 0.1 ok> \ M23: IRQ machinery (vector, IC enable, UART hook, watchdog pat) on QEMU raspi0
+FUNForth seed 0.1 ok> \ M23: IRQ machinery on QEMU raspi0 - systimer C1 path (UART RX hook is hw-only)
  ok
 ok> create hook-cnt 0 ,
  ok
@@ -6,9 +6,19 @@ ok> : hook1 hook-cnt @ 1+ hook-cnt ! ;
  ok
 ok> uart-irq-rx
  ok
-ok> 57 irq-enable
- ok
 ok> ' hook1 irq-hook-uart
+ ok
+ok> 0 irq-hook-uart
+ ok
+ok> irq-off
+ ok
+ok> irqs@ 0> .
+0 ok
+ok> tick-irqs@ 0> .
+0 ok
+ok> tick-start
+ ok
+ok> 1 irq-enable
  ok
 ok> irq-on
  ok
@@ -18,10 +28,10 @@ ok> irq-off
  ok
 ok> irqs@ 0> .
 -1 ok
-ok> hook-cnt @ 0> .
+ok> tick-irqs@ 0> .
 -1 ok
-ok> tick-irqs@ 0> 0= if ." tick-irq-poll-wins" cr then
- ok
+ok> hook-cnt @ 0> .
+0 ok
 ok> pat
  ok
 ok> ." M23-DONE" cr

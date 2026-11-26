@@ -131,8 +131,7 @@ abort_handler:
 @ and calls the UART hook xt (if any) for UART IRQs (pending2 bit 25).
     .global irq_handler
 irq_handler:
-    sub     lr, lr, #4
-    stmfd   sp!, {r0-r3, r10-r12, lr}
+    stmfd   sp!, {r0-r3, r10-r12, lr}   @ lr_irq = interrupted pc+4; subs pc,lr,#4 at exit
     ldr     r0, =irqs_v
     ldr     r1, [r0]
     add     r1, r1, #1
