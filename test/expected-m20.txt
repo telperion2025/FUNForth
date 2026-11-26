@@ -1,0 +1,55 @@
+FUNForth seed 0.1 ok> \ M20: I2C + SSD1306 OLED + DS3231 RTC (QEMU: register-level + no-device stub)
+ ok
+ok> load fb.fth
+ ok
+ok> load font8x16.fth
+ ok
+ok> load vdi.fth
+ ok
+ok> load i2c.fth
+ ok
+ok> load ssd1306.fth
+ ok
+ok> load rtc.fth
+ ok
+ok> i2c-pins
+ ok
+ok> 1666 20 i2c!
+ ok
+ok> 20 i2c@ .
+1666 ok
+ok> 66 12 i2c!
+ ok
+ok> 12 i2c@ h.
+00000042 ok
+ok> oled-init
+ ok
+ok> oled-clear
+ ok
+ok> 5 7 1 oled!
+ ok
+ok> 5 7 oled@ .
+-1 ok
+ok> 5 7 0 oled!
+ ok
+ok> 5 7 oled@ .
+0 ok
+ok> 65 8 8 oled-char
+ ok
+ok> oled-flush
+ ok
+ok> ." OLED-OK" cr
+OLED-OK
+ ok
+ok> time@ . . . . . . .
+0000000 ok
+ok> 30 14 6 3 25 11 24 time!
+ ok
+ok> time@ . . . . . . .
+0000000 ok
+ok> 60 i2c-probe .
+0 ok
+ok> ." M20-DONE" cr
+M20-DONE
+ ok
+ok>

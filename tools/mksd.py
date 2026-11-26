@@ -48,13 +48,17 @@ def fat32_image(size_mb, files):
     fat = bytearray(fatsz * bps)
     struct.pack_into("<I", fat, 0, 0x0FFFFFF8)
     struct.pack_into("<I", fat, 4, 0xFFFFFFFF)
-    struct.pack_into("<I", fat, 8, 0xFFFFFFFF)   # cluster 2 = root dir, EOC
+    # root dir: clusters 2..2+nroot-1, chained (FAT32 root is a cluster chain)
+    nroot = max(1, (len(files) * 32 + bps - 1) // bps)
+    for c in range(nroot):
+        val = 2 + c + 1 if c < nroot - 1 else 0x0FFFFFFF
+        struct.pack_into("<I", fat, (2 + c) * 4, val)
     for i in range(nfats):
         off = (reserved + i * fatsz) * bps
         img[off:off + len(fat)] = fat
-    # root dir at cluster 2
-    root = bytearray(bps)
-    next_clus = 3
+    # root dir at clusters 2..
+    root = bytearray(nroot * bps)
+    next_clus = 2 + nroot
     for name, hostpath in files:
         with open(hostpath, "rb") as f:
             data = f.read()
@@ -81,8 +85,9 @@ def fat32_image(size_mb, files):
         struct.pack_into("<I", e, 28, len(data))
         off = files.index((name, hostpath)) * 32
         root[off:off + 32] = e
-    rlba = data_start + (2 - 2) * spc
-    img[rlba * bps:rlba * bps + bps] = root
+    for c in range(nroot):
+        rlba = data_start + (2 + c - 2) * spc
+        img[rlba * bps:rlba * bps + bps] = root[c * bps:(c + 1) * bps]
     # rewrite FATs with chains
     for i in range(nfats):
         off = (reserved + i * fatsz) * bps
