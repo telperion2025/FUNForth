@@ -48,7 +48,7 @@ create tr-w 0 ,
 : term-type ( addr len -- ) 0 do dup i + c@ term-emit loop drop ;
 
 : term-open-count ( -- n )
-  0 wm-list @ begin dup while dup 4 + @ 4 and if 1+ then @ repeat drop ;
+  0 wm-list @ begin dup while dup 4 + @ 4 and if swap 1+ swap then @ repeat drop ;
 : term-close-check ( win -- )              \ close refused on the last terminal
   term-open-count 1 > if wm-do-close else ." last-term" drop then ;
 
