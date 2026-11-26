@@ -413,7 +413,7 @@ create asm-dead 0 ,
     dup .name ." : "
     dup 9 + c@ + 10 + align4
     begin dup @ ['] exit <> while cell. repeat
-    drop ." ;" cr
+    2drop ." ;" cr
   else
     dup .name ." : <code> " pfa
     begin dis1 until
