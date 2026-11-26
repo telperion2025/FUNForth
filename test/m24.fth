@@ -1,5 +1,5 @@
 \ M24: MMU identity map + caches on; save-image/load-image RAM round trip
-load save-image.fth
+load saveimg.fth
 mmu@ .
 mmu-on
 mmu@ .
