@@ -1492,8 +1492,9 @@ mmu_on_code:
 defword mmu_q, "mmu@"                   @ ( -- f ) -1 if MMU enabled
 mmu_q_code:
     mrc     p15, 0, r0, c1, c0, 0
-    and     r0, r0, #1
-    rsb     r0, r0, #0              @ bit0 set -> -1, clear -> 0 (no flag-conditional movs)
+    tst     r0, #1
+    mvneq   r0, #0
+    moveq   r0, #0
     sub     r4, r4, #4
     str     r0, [r4]
     b       next
