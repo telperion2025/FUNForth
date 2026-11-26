@@ -1,0 +1,24 @@
+FUNForth seed 0.1 ok> \ M25: release - manual help, probe, demo pack; full suite runs in CI
+ ok
+ok> load manual.fth
+ ok
+ok> load probe.fth
+ ok
+ok> load smp.fth
+ ok
+ok> help
+FUNForth v2.0 topics: core console tasks asm wm term gui hello drivers irq mmu
+see <word> decompiles a word; words lists the dictionary; ' <word> pushes its xt.
+ ok
+ok> probe
+depth=0 here-ok=-1 latest-ok=-1 task=-1 cores=1 irqs=0
+ ok
+ok> load demo.fth
+ ok
+ok> demo
+DEMO-READY
+ ok
+ok> ." M25-DONE" cr
+M25-DONE
+ ok
+ok>

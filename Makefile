@@ -33,7 +33,7 @@ SD_FILES := BOOT.LST=sd/boot.lst TIMER.FTH=drivers/timer.fth \
             FONT8X16.FTH=drivers/font8x16.fth CON-FB.FTH=drivers/console-fb.fth \
             TASKS.FTH=forth/tasks.fth ASM.FTH=forth/asm.fth WM.FTH=wm.fth \
             TERM.FTH=term.fth GUI.FTH=gui.fth HELLO.FTH=hello.fth \
-            I2C.FTH=drivers/i2c.fth SSD1306.FTH=drivers/ssd1306.fth RTC.FTH=drivers/rtc-ds3231.fth USBHID.FTH=drivers/usbhid.fth SMP.FTH=forth/smp.fth SAVEIMG.FTH=utils/save-image.fth
+            I2C.FTH=drivers/i2c.fth SSD1306.FTH=drivers/ssd1306.fth RTC.FTH=drivers/rtc-ds3231.fth USBHID.FTH=drivers/usbhid.fth SMP.FTH=forth/smp.fth SAVEIMG.FTH=utils/save-image.fth PROBE.FTH=utils/probe.fth DEMO.FTH=utils/demo.fth MANUAL.FTH=doc/manual.fth
 
 all: kernel.img kernel.elf
 
@@ -58,7 +58,7 @@ kernel.img: kernel.elf
 # seed.S .incbin's the stripped build/*.fth: rebuild when they change
 src/seed.o: $(EMBED)
 
-build/sd.img: tools/mksd.py sd/boot.lst sd/hello.txt drivers/timer.fth drivers/gpio.fth drivers/mailbox.fth drivers/fb.fth drivers/vdi.fth drivers/font8x16.fth drivers/console-fb.fth forth/tasks.fth forth/asm.fth forth/smp.fth drivers/i2c.fth drivers/ssd1306.fth drivers/rtc-ds3231.fth drivers/usbhid.fth utils/save-image.fth wm.fth term.fth gui.fth hello.fth | build
+build/sd.img: tools/mksd.py sd/boot.lst sd/hello.txt drivers/timer.fth drivers/gpio.fth drivers/mailbox.fth drivers/fb.fth drivers/vdi.fth drivers/font8x16.fth drivers/console-fb.fth forth/tasks.fth forth/asm.fth forth/smp.fth drivers/i2c.fth drivers/ssd1306.fth drivers/rtc-ds3231.fth drivers/usbhid.fth utils/save-image.fth utils/probe.fth utils/demo.fth doc/manual.fth wm.fth term.fth gui.fth hello.fth | build
 	python3 tools/mksd.py $@ 32 $(SD_FILES)
 
 # QEMU loads a raw -kernel image at 0x10000 on raspi models, so the harness
@@ -111,6 +111,9 @@ test-m23: kernel.elf build/sd.img
 test-m24: kernel.elf build/sd.img
 	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/m24.fth --wait-for "ok> " --expected test/expected-m24.txt --timeout 30 --idle 3
 
+test-m25: kernel.elf build/sd.img
+	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/m25.fth --wait-for "ok> " --expected test/expected-m25.txt --timeout 40 --idle 3
+
 test-hello: kernel.elf build/sd.img
 	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/hello.fth --wait-for "ok> " --expected test/expected-hello.txt --screendump build/hello.ppm --idle 3 --timeout 90
 	python3 tools/fbcheck.py build/hello.ppm test/expected-hello-fb.txt
@@ -124,4 +127,4 @@ test-host:
 clean:
 	rm -rf build $(OBJ) kernel.elf kernel.img
 
-.PHONY: all run test test-fb test-sd test-tasks test-preempt test-asm test-gui test-term test-hello test-m20 test-m21 test-m22 test-m23 test-m24 test-host clean
+.PHONY: all run test test-fb test-sd test-tasks test-preempt test-asm test-gui test-term test-hello test-m20 test-m21 test-m22 test-m23 test-m24 test-m25 test-host clean

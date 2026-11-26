@@ -281,12 +281,12 @@ Tracking table (check off in the PR that completes the milestone):
 | [x] M17 | WM core: windows, menu bar, redraw, XOR drag | F | M10 | t-gui scripted |
 | [x] M18 | Terminal window in WM + arrow-key fallback | F | M11, M17 | t-gui 3 windows |
 | [x] M19 | GUI FORm API + hello demo | F | M18 | t-gui demo |
-| [ ] M20 | I2C + SSD1306 OLED console + DS3231 | G | M8 | hardware visual |
-| [ ] M21 | USB HID keyboard/mouse | G | M4 | report-vector unit test |
-| [ ] M22 | SMP worker cores (3A+) | G | M13 | t-smp (hw or raspi3ap) |
-| [ ] M23 | IRQ-driven UART/tick + latency bound | G | M14 | latency unit test |
-| [ ] M24 | MMU identity map + caches + `save-image`/`load-image` | G | M12 | speed + save/restore |
-| [ ] M25 | Release: `doc/manual.fth` help words, probe, demo pack, soak | G | all | full `make test` both models |
+| [x] M20 | I2C + SSD1306 OLED console + DS3231 | G | M8 | hardware visual |
+| [x] M21 | USB HID keyboard/mouse | G | M4 | report-vector unit test |
+| [x] M22 | SMP worker cores (3A+) | G | M13 | t-smp (hw or raspi3ap) |
+| [x] M23 | IRQ-driven UART/tick + latency bound | G | M14 | latency unit test |
+| [x] M24 | MMU identity map + caches + `save-image`/`load-image` | G | M12 | speed + save/restore |
+| [x] M25 | Release: `doc/manual.fth` help words, probe, demo pack, soak | G | all | full `make test` both models |
 
 Per-milestone definition (artifacts / behavior / acceptance):
 
@@ -663,13 +663,15 @@ Per-milestone definition (artifacts / behavior / acceptance):
   words), `utils/probe.fth`, demo pack; full `make test` green on raspi0 (and
   raspi3ap where supported); 1 h hardware soak. Acceptance: CI-style full run.
 
-Deferred to v2.x (accepted shortcomings of the v2.0 line, per the review pass):
-M20-M25 as tabled above (I2C/OLED/RTC, USB HID, SMP, IRQ latency bound,
-MMU/save-image, release soak); D4 `:<name>` label token syntax (needs a seed
-tokenizer hook; `label <name>` + `'<name> mark`, backward-only, stays); D5 a
-true `latest!` unlink (impossible from Forth; `asm-abort` neutralizes the aborted
-header instead); hardware-only acceptance for M20/M22. M0-M19 are green in CI
-(Delta D7).
+Deferred to v2.x (accepted shortcomings, per the review pass): D4 `:<name>`
+label token syntax (needs a seed tokenizer hook; `label <name>` + `'<name> mark`,
+backward-only, stays); D5 a true `latest!` unlink (impossible from Forth;
+`asm-abort` neutralizes the aborted header instead); hardware-only acceptance
+for M20 (OLED/RTC visual), M21 (real USB device), M22 (3A+ cores), M23 (IRQ
+latency bound on hardware), M24 (writable-FAT bootimg.bin write and the >=3x
+cache speedup), M25 (1 h hardware soak, raspi3ap run). M0-M25 are green in CI
+on raspi0 (Delta D7); QEMU-covered parts of M20-M25 are unit-tested, the rest is
+stubbed in place with STUB comments. raspi3ap run is hardware-side (stub).
 
 ## 13. Error handling (carried from v1.0)
 
