@@ -85,8 +85,8 @@ create b-x 0 , create b-y 0 , create b-w 0 , create b-h 0 ,
   wm-focus @ win-x@ b-x @ + b-x !
   wm-focus @ win-y@ 16 + b-y @ + b-y !
   btn-cnt @ 8 < if
-    btn-cnt @ 1+ btn-cnt !
     btn-cnt @ 24 * btn-tab + >r
+    btn-cnt @ 1+ btn-cnt !
     btn-t @ r@ 20 + !
     wm-focus @ r@ 16 + !
     b-h @ r@ 12 + !
@@ -100,21 +100,23 @@ create b-x 0 , create b-y 0 , create b-w 0 , create b-h 0 ,
 
 \ ---- dispatcher ----
 create gp-win 0 , create gp-b 0 ,
+create gp-x 0 , create gp-y 0 ,
 : gui-press ( x y -- )    \ r@ is unusable inside do loops (reads loop params)
-  2dup win-at dup 0= if drop 2drop exit then
+  gp-y ! gp-x !
+  gp-x @ gp-y @ win-at dup 0= if 2drop exit then
   gp-win !
-  2dup gp-win @ win-x@ gp-win @ win-w@ + 16 - gp-win @ win-y@ 16 16 in-rect? if   \ close box
-    gp-win @ win-close 2drop exit
+  gp-x @ gp-y @ gp-win @ win-x@ gp-win @ win-w@ + 16 - gp-win @ win-y@ 16 16 in-rect? if   \ close box
+    gp-win @ win-close exit
   then
   gp-win @ wm-focus @ = if
     btn-cnt @ 0 do
       i 24 * btn-tab + gp-b !
-      2dup gp-b @ @ gp-b @ 4 + @ gp-b @ 8 + @ gp-b @ 12 + @ in-rect? if
-        2drop gp-b @ 20 + @ execute unloop exit
+      gp-x @ gp-y @ gp-b @ @ gp-b @ 4 + @ gp-b @ 8 + @ gp-b @ 12 + @ in-rect? if
+        gp-b @ 20 + @ execute unloop exit
       then
     loop
   then
-  2drop ;
+  ;
 
 : gui-poll ( -- )
   event? 0= if exit then
