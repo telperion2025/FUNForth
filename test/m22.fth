@@ -6,5 +6,5 @@ cores .
 7 0 send
 0 5 recvx . .
 0 recv . .
-corelist .
+corelist
 ." M22-DONE" cr

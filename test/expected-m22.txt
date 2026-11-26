@@ -14,7 +14,7 @@ ok> 0 5 recvx . .
 -17 ok
 ok> 0 recv . .
 00 ok
-ok> corelist .
+ok> corelist
 1 2 2 ok
 ok> ." M22-DONE" cr
 M22-DONE

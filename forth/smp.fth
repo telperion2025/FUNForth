@@ -18,5 +18,5 @@ create smp-head 0 , create smp-tail 0 ,
   smp-head @ 1+ 16 mod smp-head !
   -1 ;
 : sendx ( msg core ms -- ok ) drop send -1 ;
-: recvx ( core ms -- msg f ) >r r@ ms r> recv ;
+: recvx ( core ms -- msg f ) ms recv ;   \ ms consumes TOS (ms), leaves core for recv
 : corelist ( -- ) cores . space smp-head @ . space smp-tail @ . ;
