@@ -14,7 +14,7 @@ create tr-w 0 ,
   tr-w !
   tr-w @ 44 + @ 0 do                              \ rows
     tr-w @ 40 + @ 0 do                            \ cols
-      tr-w @ 56 + j tr-w @ 40 + @ * i + + c@      \ buf[j*cols+i]
+      tr-w @ 56 + j tr-w @ 40 + @ * i + + c@ dup 0= if drop 32 then      \ buf[j*cols+i]
       tr-w @ win-x@ i 8 * + tr-w @ win-y@ 16 + j 16 * + char
     loop
   loop ;
