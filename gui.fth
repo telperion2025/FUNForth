@@ -70,7 +70,7 @@ create at-win 0 ,
 : win-at ( x y -- win )                     \ topmost window containing point
   0 at-win !
   wm-list @ begin dup while
-    >r 2dup r@ win-x@ r@ win-y@ r@ win-w@ r@ win-h@ in-rect? if r@ at-win ! then r> drop @
+    >r 2dup r@ win-x@ r@ win-y@ r@ win-w@ r@ win-h@ in-rect? if r@ at-win ! then r> @
   repeat drop 2drop at-win @ ;
 
 \ ---- buttons: 8 slots x 24B (+0 x +4 y +8 w +12 h +16 win +20 xt), abs coords
