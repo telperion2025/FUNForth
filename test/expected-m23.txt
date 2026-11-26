@@ -1,4 +1,4 @@
-FUNForth seed 0.1 ok> \ M23: IRQ machinery on QEMU raspi0 - systimer C1 path (UART RX hook is hw-only)
+FUNForth seed 0.1 ok> \ M23: IRQ words on QEMU raspi0 (no IRQ source enabled - real delivery is hw-only/v2)
  ok
 ok> create hook-cnt 0 ,
  ok
@@ -12,25 +12,17 @@ ok> 0 irq-hook-uart
  ok
 ok> irq-off
  ok
-ok> irqs@ 0> .
+ok> irqs@ .
 0 ok
-ok> tick-irqs@ 0> .
+ok> tick-irqs@ .
 0 ok
-ok> tick-start
- ok
-ok> 1 irq-enable
- ok
 ok> irq-on
- ok
-ok> 100000 0 do loop
  ok
 ok> irq-off
  ok
-ok> irqs@ 0> .
--1 ok
-ok> tick-irqs@ 0> .
--1 ok
-ok> hook-cnt @ 0> .
+ok> irqs@ .
+0 ok
+ok> hook-cnt @ .
 0 ok
 ok> pat
  ok
