@@ -9,15 +9,15 @@ create term-pool 3 1976 * allot
 create term-next term-pool ,
 create term-rsz 0 ,
 
-: term-redraw ( w -- )
-  >r
-  r@ 44 @ 0 do                              \ rows
-    r@ 40 @ 0 do                            \ cols
-      r@ 56 + j r@ 40 + @ * i + c@          \ buf[j*cols+i]
-      r@ win-x@ i 8 * + r@ win-y@ 16 + j 16 * + char
+create tr-w 0 ,
+: term-redraw ( w -- )    \ r@ is unusable inside do loops (reads loop params)
+  tr-w !
+  tr-w @ 44 @ 0 do                              \ rows
+    tr-w @ 40 @ 0 do                            \ cols
+      tr-w @ 56 + j tr-w @ 40 + @ * i + c@      \ buf[j*cols+i]
+      tr-w @ win-x@ i 8 * + tr-w @ win-y@ 16 + j 16 * + char
     loop
-  loop
-  r> drop ;
+  loop ;
 
 : term-scroll ( t -- )
   >r
@@ -68,13 +68,15 @@ create term-rsz 0 ,
   wm-focus @ dup 0= if drop exit then
   dup 4 + @ 4 and 0= if drop exit then
   term-rsz ! ;
+create ta-t 0 , create ta-dx 0 , create ta-dy 0 ,
 : term-arrow ( dx dy -- )
   term-rsz @ 0= if 2drop exit then
-  >r rot r@ 40 + @ + dup 4 < if drop 4 then dup 80 > if drop 80 then r@ 40 + !
-  r@ 44 + @ + dup 2 < if drop 2 then dup 24 > if drop 24 then r@ 44 + !
-  r@ 40 + @ 8 * r@ 16 + !
-  r@ 44 + @ 16 * 16 + r@ 20 + !
-  0 r@ 48 + ! 0 r@ 52 + !
-  r> drop
+  ta-dy ! ta-dx !
+  term-rsz @ ta-t !
+  ta-t @ 40 + dup @ ta-dx @ + dup 4 < if drop 4 then dup 80 > if drop 80 then ta-t @ 40 + !
+  ta-t @ 44 + dup @ ta-dy @ + dup 2 < if drop 2 then dup 24 > if drop 24 then ta-t @ 44 + !
+  ta-t @ 40 + @ 8 * ta-t @ 16 + !
+  ta-t @ 44 + @ 16 * 16 + ta-t @ 20 + !
+  0 ta-t @ 48 + ! 0 ta-t @ 52 + !
   wm-redraw-all ;
 : term-resize-end ( -- ) 0 term-rsz ! ;

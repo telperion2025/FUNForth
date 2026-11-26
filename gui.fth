@@ -98,22 +98,22 @@ create b-x 0 , create b-y 0 , create b-w 0 , create b-h 0 ,
   b-x @ 4 + b-y @ 4 + text ;
 
 \ ---- dispatcher ----
-: gui-press ( x y -- )
+create gp-win 0 , create gp-b 0 ,
+: gui-press ( x y -- )    \ r@ is unusable inside do loops (reads loop params)
   2dup win-at dup 0= if drop 2drop exit then
-  >r
-  2dup r@ win-x@ r@ win-w@ + 16 - r@ win-y@ 16 16 in-rect? if   \ close box
-    r> win-close 2drop exit
+  gp-win !
+  2dup gp-win @ win-x@ gp-win @ win-w@ + 16 - gp-win @ win-y@ 16 16 in-rect? if   \ close box
+    gp-win @ win-close 2drop exit
   then
-  r@ wm-focus @ = if
+  gp-win @ wm-focus @ = if
     btn-cnt @ 0 do
-      i 24 * btn-tab + >r
-      2dup r@ @ r@ 4 + @ r@ 8 + @ r@ 12 + @ in-rect? if
-        2drop r@ 20 + @ execute unloop r> drop exit
+      i 24 * btn-tab + gp-b !
+      2dup gp-b @ @ gp-b @ 4 + @ gp-b @ 8 + @ gp-b @ 12 + @ in-rect? if
+        2drop gp-b @ 20 + @ execute unloop exit
       then
-      r> drop
     loop
   then
-  r> drop 2drop ;
+  2drop ;
 
 : gui-poll ( -- )
   event? 0= if exit then

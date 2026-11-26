@@ -11,7 +11,7 @@ wm-init
 create hw 0 ,
 200 150 win-new hw !
 word Hello count hw @ win-title!
-['] hello-redraw hw @ win-redraw!
+' hello-redraw hw @ win-redraw!
 220 hw @ win-x!
 100 hw @ win-y!
 hw @ win-open
@@ -22,4 +22,6 @@ next-redraw .
 ." C" cr
 menu-bar!
 ." D" cr
+wm-redraw-all
+." E" cr
 ." DONE" cr
