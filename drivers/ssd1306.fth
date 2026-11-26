@@ -2,28 +2,28 @@
 \ needs i2c.fth, font8x16.fth, vdi.fth (glyph). Framebuffer is page format:
 \ fb[page*128 + x], bit (y mod 8). Flush errors are ignored (stub-safe in QEMU).
 create oled-fb 1024 allot
-create o-x 0 , create o-y 0 , create o-v 0 ,
+create o-x 0 , create o-y 0 , create o-v 0 , create o-dbg 0 ,
+: oled-addr ( -- a ) oled-fb o-y @ 8 / 128 * o-x @ + + ;
+: oled-mask ( -- m ) 1 o-y @ 8 mod lshift ;
 : oled! ( x y v -- )      \ set/clear pixel in fb (no flush)
-  >r o-y ! o-x ! r> o-v !
-  oled-fb o-y @ 8 / 128 * o-x @ + +        \ a
-  dup @                                    \ a old
-  o-y @ 8 mod 1 swap lshift                \ a old m
-  o-v @ if or else invert and then         \ a new
+  o-v ! o-y ! o-x !
+  oled-addr dup o-dbg !                      \ a, o-dbg = a (debug)
+  dup @ oled-mask o-v @ if or else invert and then   \ a new
   swap ! ;
 : oled@ ( x y -- v )      \ -1 if pixel set, else 0
   o-y ! o-x !
-  oled-fb o-y @ 8 / 128 * o-x @ + + @
-  o-y @ 8 mod 1 swap lshift and 0= 0= ;
+  oled-addr @ oled-mask and 0= 0= ;
 : oled-clear ( -- ) oled-fb 1024 0 fill ;
 create oled-acc 0 ,
 : oled-sum ( -- n ) 0 oled-acc ! oled-fb 1024 0 do oled-fb i + c@ oled-acc @ + oled-acc ! loop oled-acc @ ;
 create oc-c 0 , create oc-x 0 , create oc-y 0 ,
+create oc-r 0 , create oc-k 0 ,
 : oled-char ( c x y -- )  \ draw 8x8 (top half of the 8x16 glyph) at pixel x,y
   oc-y ! oc-x ! oc-c !
-  8 0 do                                  \ i = row
-    8 0 do                                \ j = col
-      font8x16 oc-c @ 32 - 16 * + i + c@ 128 j rshift and if
-        oc-x @ j + oc-y @ i + 1 oled!
+  8 0 do i oc-r !                         \ oc-r = row (i reads outer loop here)
+    8 0 do i oc-k !                       \ oc-k = col (i reads inner loop here)
+      font8x16 oc-c @ 32 - 16 * + oc-r @ + c@ 128 oc-k @ rshift and if
+        oc-x @ oc-k @ + oc-y @ oc-r @ + 1 oled!
       then
     loop
   loop ;
