@@ -5,7 +5,7 @@
 : cores ( -- n ) io-base @ 1056964608 = if 4 else 1 then ;   \ 0x3F000000
 create smp-q 64 allot               \ 16-cell message ring
 create smp-head 0 , create smp-tail 0 ,
-: core ( n -- ) cores @ < 0= if ." -? core " drop exit then drop ;
+: core ( n -- ) dup cores < 0= if ." -? core " drop exit then drop ;   \ consume n; error if n >= cores
 : core! ( n -- ) core ;             \ STUB: per-core select (hw: doorbell)
 : send ( msg core -- )
   core
