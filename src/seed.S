@@ -143,16 +143,19 @@ irq_handler:
     beq     1f
     mov     r3, #2
     str     r3, [r1]                    @ clear CS.M1
-    add     r1, r9, #0x3004             @ CLO
+    add     r1, r9, #0x3000
+    add     r1, r1, #4                  @ CLO
     ldr     r3, [r1]
     add     r3, r3, #1000
-    add     r1, r9, #0x3010             @ C1: re-arm 1 kHz
+    add     r1, r9, #0x3000
+    add     r1, r1, #16                 @ C1: re-arm 1 kHz
     str     r3, [r1]
     ldr     r0, =tick_irqs_v
     ldr     r1, [r0]
     add     r1, r1, #1
     str     r1, [r0]
-1:  add     r1, r9, #0xB208             @ IC IRQ pending 2
+1:  add     r1, r9, #0xB200
+    add     r1, r1, #8                  @ IC IRQ pending 2
     ldr     r2, [r1]
     tst     r2, #0x2000000              @ bit 25 = UART (IRQ 57)
     beq     2f
@@ -1386,14 +1389,17 @@ irq_enable_code:
     ldr     r0, [r4], #4
     cmp     r0, #32
     bhs     1f
-    add     r1, r9, #0xB210             @ Enable IRQs 1
+    add     r1, r9, #0xB200
+    add     r1, r1, #0x10             @ Enable IRQs 1
     b       2f
 1:  cmp     r0, #64
     bhs     3f
-    add     r1, r9, #0xB214             @ Enable IRQs 2
+    add     r1, r9, #0xB200
+    add     r1, r1, #0x14             @ Enable IRQs 2
     sub     r0, r0, #32
     b       2f
-3:  add     r1, r9, #0xB218             @ Enable Basic IRQs
+3:  add     r1, r9, #0xB200
+    add     r1, r1, #0x18             @ Enable Basic IRQs
     sub     r0, r0, #64
 2:  mov     r2, #1
     mov     r2, r2, lsl r0
@@ -1404,7 +1410,8 @@ irq_enable_code:
 
 defword uart_irq_rx, "uart-irq-rx"     @ ( -- ) unmask PL011 RX interrupt (IMSC bit 4)
 uart_irq_rx_code:
-    add     r1, r9, #0x201000
+    add     r1, r9, #0x200000
+    add     r1, r1, #0x1000          @ PL011 base 0x201000
     ldr     r2, [r1, #0x38]
     orr     r2, r2, #16
     str     r2, [r1, #0x38]
