@@ -64,8 +64,8 @@ create fs 0 ,
 create h-x 0 , create h-y 0 , create h-rx 0 , create h-ry 0 , create h-rw 0 , create h-rh 0 ,
 : in-rect? ( x y rx ry rw rh -- f )
   h-rh ! h-rw ! h-ry ! h-rx ! h-y ! h-x !
-  h-rx @ h-x @ < 0= h-x @ h-rx @ h-rw @ + < and
-  h-ry @ h-y @ < 0= h-y @ h-ry @ h-rh @ + < and and ;
+  h-x @ h-rx @ < 0= h-x @ h-rx @ h-rw @ + < and
+  h-y @ h-ry @ < 0= h-y @ h-ry @ h-rh @ + < and and ;
 create at-win 0 ,
 : win-at ( x y -- win )                     \ topmost window containing point
   0 at-win !
