@@ -105,6 +105,9 @@ test-m21: kernel.elf build/sd.img
 test-m22: kernel.elf build/sd.img
 	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/m22.fth --wait-for "ok> " --expected test/expected-m22.txt --timeout 30 --idle 3
 
+test-m23: kernel.elf build/sd.img
+	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/m23.fth --wait-for "ok> " --expected test/expected-m23.txt --timeout 30 --idle 3
+
 test-hello: kernel.elf build/sd.img
 	$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/hello.fth --wait-for "ok> " --expected test/expected-hello.txt --screendump build/hello.ppm --idle 3 --timeout 90
 	python3 tools/fbcheck.py build/hello.ppm test/expected-hello-fb.txt
@@ -118,4 +121,4 @@ test-host:
 clean:
 	rm -rf build $(OBJ) kernel.elf kernel.img
 
-.PHONY: all run test test-fb test-sd test-tasks test-preempt test-asm test-gui test-term test-hello test-m20 test-m21 test-m22 test-host clean
+.PHONY: all run test test-fb test-sd test-tasks test-preempt test-asm test-gui test-term test-hello test-m20 test-m21 test-m22 test-m23 test-host clean

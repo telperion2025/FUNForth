@@ -45,6 +45,11 @@ atag_walk:
     b       atag_walk
 1:  sub     r13, r0, #0x1000            @ r13 = sp = top-of-RAM - 4 KB (shared:
     @ Forth return stack and asm subroutine stack are the same ARM sp)
+    @ IRQ-mode stack: 2 KB below the top-of-RAM Forth stack (banked sp_irq)
+    mov     r12, r13
+    msr     cpsr_c, #0xD1               @ IRQ mode, IRQ+FIQ masked
+    sub     sp, r12, #0x800
+    msr     cpsr_c, #0xDF               @ back to SYS mode
     @ SoC detect: probe 2837 mailbox status; data abort or zero -> 2835
     ldr     r0, =abort_flag
     mov     r1, #0
@@ -108,7 +113,7 @@ vector_slab:
     .rept 8
     ldr     pc, [pc, #0x18]             @ vectors 0x00-0x1C -> literals at 0x20+
     .endr
-    .word   hang, hang, hang, hang, abort_handler, 0, hang, hang
+    .word   hang, hang, hang, hang, abort_handler, 0, irq_handler, hang
 
     .global hang
 hang:
@@ -120,6 +125,44 @@ abort_handler:
     mov     r1, #1
     str     r1, [r0]
     subs    pc, lr, #4                  @ skip faulting instruction
+
+@ M23: IRQ handler (IRQ mode: only sp/lr are banked; r4/r9-r12 are the
+@ interrupted task's). Counts IRQs, services systimer C1 (clear+re-arm+count),
+@ and calls the UART hook xt (if any) for UART IRQs (pending2 bit 25).
+    .global irq_handler
+irq_handler:
+    sub     lr, lr, #4
+    stmfd   sp!, {r0-r3, r10-r12, lr}
+    ldr     r0, =irqs_v
+    ldr     r1, [r0]
+    add     r1, r1, #1
+    str     r1, [r0]
+    add     r1, r9, #0x3000             @ SYSTIMER CS
+    ldr     r2, [r1]
+    tst     r2, #2                      @ M1 match?
+    beq     1f
+    mov     r3, #2
+    str     r3, [r1]                    @ clear CS.M1
+    add     r1, r9, #0x3004             @ CLO
+    ldr     r3, [r1]
+    add     r3, r3, #1000
+    add     r1, r9, #0x3010             @ C1: re-arm 1 kHz
+    str     r3, [r1]
+    ldr     r0, =tick_irqs_v
+    ldr     r1, [r0]
+    add     r1, r1, #1
+    str     r1, [r0]
+1:  add     r1, r9, #0xB208             @ IC IRQ pending 2
+    ldr     r2, [r1]
+    tst     r2, #0x2000000              @ bit 25 = UART (IRQ 57)
+    beq     2f
+    ldr     r0, =irq_hook_v
+    ldr     r0, [r0]
+    cmp     r0, #0
+    beq     2f
+    bl      execute_xt                  @ run hook (saves/restores nothing of r4)
+2:  ldmfd   sp!, {r0-r3, r10-r12, lr}
+    subs    pc, lr, #4                  @ return, restore CPSR
 
 @ NEXT (DTC): r11 = [r10++]; pc = [r11+4]  (cfa cell holds code address)
     .global next
@@ -1326,6 +1369,77 @@ preemptible_code:
     orr     r1, r1, #1
     str     r1, [r0, #28]
     b       next
+
+@ ---- M23: IRQ controller (BCM2835 IC at io-base+0xB200) + watchdog pat ----
+defword irq_on, "irq-on"                @ ( -- ) unmask IRQ (SYS, I=0)
+irq_on_code:
+    msr     cpsr_c, #0x5F
+    b       next
+
+defword irq_off, "irq-off"              @ ( -- ) mask IRQ
+irq_off_code:
+    msr     cpsr_c, #0xDF
+    b       next
+
+defword irq_enable, "irq-enable"        @ ( irq -- ) enable in IC (0-31 / 32-63 / 64-71 basic)
+irq_enable_code:
+    ldr     r0, [r4], #4
+    cmp     r0, #32
+    bhs     1f
+    add     r1, r9, #0xB210             @ Enable IRQs 1
+    b       2f
+1:  cmp     r0, #64
+    bhs     3f
+    add     r1, r9, #0xB214             @ Enable IRQs 2
+    sub     r0, r0, #32
+    b       2f
+3:  add     r1, r9, #0xB218             @ Enable Basic IRQs
+    sub     r0, r0, #64
+2:  mov     r2, #1
+    mov     r2, r2, lsl r0
+    ldr     r3, [r1]
+    orr     r3, r3, r2
+    str     r3, [r1]
+    b       next
+
+defword uart_irq_rx, "uart-irq-rx"     @ ( -- ) unmask PL011 RX interrupt (IMSC bit 4)
+uart_irq_rx_code:
+    add     r1, r9, #0x201000
+    ldr     r2, [r1, #0x38]
+    orr     r2, r2, #16
+    str     r2, [r1, #0x38]
+    b       next
+
+defword irqs_w, "irqs@"                 @ ( -- n ) total IRQs taken
+irqs_w_code:
+    ldr     r0, =irqs_v
+    ldr     r0, [r0]
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword tick_irqs_w, "tick-irqs@"       @ ( -- n ) systimer C1 IRQs taken
+tick_irqs_w_code:
+    ldr     r0, =tick_irqs_v
+    ldr     r0, [r0]
+    sub     r4, r4, #4
+    str     r0, [r4]
+    b       next
+
+defword irq_hook_uart, "irq-hook-uart"  @ ( xt -- ) set UART IRQ hook (0 = none)
+irq_hook_uart_code:
+    ldr     r0, [r4], #4
+    ldr     r1, =irq_hook_v
+    str     r0, [r1]
+    b       next
+
+defword pat, "pat"                      @ ( -- ) kick PM watchdog (PM_WDOG=0, clear PM_RSTC)
+pat_code:
+    add     r1, r9, #0x100000           @ PM block
+    ldr     r2, =0x5A000000             @ PM password
+    str     r2, [r1, #0x24]             @ PM_WDOG = 0 (disable/kick)
+    str     r2, [r1, #0x1C]             @ PM_RSTC = password (clear reset cause)
+    b       next
     .ltorg
 
 defword io_base, "io-base"
@@ -2432,6 +2546,12 @@ quanta_v:   .space  4                   @ M14: tick quanta of running task
 preempts_v: .space  4                   @ M14: preemption counter
     .global force_tick_v
 force_tick_v: .space 4                  @ M14: test hook: force one tick
+    .global irqs_v
+irqs_v:     .space 4                    @ M23: total IRQ count
+    .global tick_irqs_v
+tick_irqs_v: .space 4                   @ M23: systimer C1 IRQ count
+    .global irq_hook_v
+irq_hook_v: .space 4                    @ M23: UART IRQ hook xt (0 = none)
     .global in_ptr
 in_ptr:     .space  4
     .global inptr_sp
