@@ -13,10 +13,11 @@ word T3 count t1 @ win-title!
 30 t1 @ win-y!
 t1 @ win-open
 ." A" cr
-t1 @ wm-win !
-clip>
+: rd-1 ( w -- ) tr-w ! tr-w @ 44 @ 0 do tr-w @ 40 @ 0 do tr-w @ 56 + j tr-w @ 40 + @ * i + c@ drop loop loop ." r1" cr ;
+t1 @ rd-1
 ." B" cr
-65 320 46 char
+: rd-2 ( w -- ) tr-w ! tr-w @ 44 @ 0 do tr-w @ 40 @ 0 do 65 tr-w @ win-x@ i 8 * + tr-w @ win-y@ 16 + j 16 * + char loop loop ." r2" cr ;
+t1 @ rd-2
 ." C" cr
 t1 @ term-redraw
 ." D" cr

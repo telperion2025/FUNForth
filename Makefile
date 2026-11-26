@@ -100,22 +100,8 @@ test-hello: kernel.elf build/sd.img
 	python3 tools/fbcheck.py build/hello.ppm test/expected-hello-fb.txt
 
 test-probe: kernel.elf build/sd.img
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p1.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p2.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p3.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p4.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p5.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p6.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p7.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p8.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p9.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p10.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p13.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p14.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p15.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p16.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p17.fth --wait-for "ok> " --timeout 25
-	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p18.fth --wait-for "ok> " --timeout 25
+	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p19.fth --wait-for "ok> " --timeout 25
+	-$(QEMU_PY) --kernel kernel.elf --sd build/sd.img --script test/p20.fth --wait-for "ok> " --timeout 25
 
 # host-side checks, no ARM toolchain/QEMU needed
 test-host:
