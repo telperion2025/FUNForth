@@ -101,6 +101,7 @@ create mb-x 0 ,
   r> drop ;
 
 : menu-bar! ( -- )
+  0 0 fb-w @ 1- fb-h @ 1- clip!
   0 15 fb-w @ 1- 15 line
   4 mb-x !
   wm-list @ begin dup while
