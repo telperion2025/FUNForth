@@ -19,6 +19,15 @@ t-addr h. cr
 5 7 1 oled!
 oled-fb 5 + c@ h. cr
 0 oled-fb 5 + c!
+65 o-dbg @ !
+oled-fb 5 + c@ h. cr
+0 oled-fb 5 + c!
+o-dbg @ 65 swap !
+oled-fb 5 + c@ h. cr
+0 oled-fb 5 + c!
+o-dbg @ 1 if 65 else 66 then swap !
+oled-fb 5 + c@ h. cr
+0 oled-fb 5 + c!
 o-dbg @ dup @ oled-mask o-v @ if or else invert and then swap !
 oled-fb 5 + c@ h. cr
 5 7 oled@ .
