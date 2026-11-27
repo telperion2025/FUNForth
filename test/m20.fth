@@ -19,11 +19,11 @@ t-addr h. cr
 5 7 1 oled!
 o-dbg @ h. cr
 oled-fb h. cr
-oled-fb 5 + c@ h. cr
+0 oled-fb 4 + c!
+65 oled-fb 4 + !
+oled-fb 4 + c@ h. cr
 0 oled-fb 5 + c!
 65 oled-fb 5 + !
-oled-fb 5 + c@ h. cr
-65 o-dbg @ !
 oled-fb 5 + c@ h. cr
 5 7 oled@ .
 65 8 8 oled-char
