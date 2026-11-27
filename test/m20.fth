@@ -16,12 +16,11 @@ o-dbg h. cr
 oled-fb h. cr
 : t-addr oled-fb o-y @ 8 / 128 * o-x @ + + ;
 t-addr h. cr
-5 7 1 oled!
-o-dbg @ h. cr
-oled-fb 5 + c@ h. cr
-128 oled-fb 5 + c!
-oled-fb 5 + c@ h. cr
+oled-fb 5 + 0 c!
 o-dbg @ dup @ oled-mask o-v @ if or else invert and then swap !
+oled-fb 5 + c@ h. cr
+oled-fb 5 + 0 c!
+5 7 1 oled!
 oled-fb 5 + c@ h. cr
 5 7 oled@ .
 65 8 8 oled-char
