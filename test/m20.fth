@@ -19,9 +19,9 @@ t-addr h. cr
 5 7 1 oled!
 o-dbg @ h. cr
 oled-fb 5 + c@ h. cr
-: oled2 o-v ! o-y ! o-x ! oled-addr dup o-dbg ! dup @ oled-mask o-v @ if or else invert and then swap ! ;
-5 7 1 oled2
-o-dbg @ h. cr
+128 oled-fb 5 + c!
+oled-fb 5 + c@ h. cr
+o-dbg @ dup @ oled-mask o-v @ if or else invert and then swap !
 oled-fb 5 + c@ h. cr
 5 7 oled@ .
 65 8 8 oled-char
