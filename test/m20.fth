@@ -16,10 +16,11 @@ o-dbg h. cr
 oled-fb h. cr
 : t-addr oled-fb o-y @ 8 / 128 * o-x @ + + ;
 t-addr h. cr
-load asm.fth
-see oled-addr
-see t-addr
-see oled!
+: t3 o-v ! o-y ! o-x ! oled-addr h. cr ;
+5 7 1 t3
+: t4 o-v ! o-y ! o-x ! o-y @ . space o-x @ . space oled-addr h. cr ;
+5 7 1 t4
+o-dbg h. cr
 5 7 oled@ .
 65 8 8 oled-char
 oled-sum .
