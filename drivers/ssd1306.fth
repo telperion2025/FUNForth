@@ -2,17 +2,17 @@
 \ needs i2c.fth, font8x16.fth, vdi.fth (glyph). Framebuffer is page format:
 \ fb[page*128 + x], bit (y mod 8). Flush errors are ignored (stub-safe in QEMU).
 create oled-fb 1024 allot
-create o-x 0 , create o-y 0 , create o-v 0 , create o-dbg 0 ,
+create o-x 0 , create o-y 0 , create o-v 0 ,
 : oled-addr ( -- a ) oled-fb o-y @ 8 / 128 * o-x @ + + ;
 : oled-mask ( -- m ) 1 o-y @ 8 mod lshift ;
-: oled! ( x y v -- )      \ set/clear pixel in fb (no flush)
-  o-v ! o-y ! o-x !
-  oled-addr dup o-dbg !                      \ a, o-dbg = a (debug)
-  dup @ oled-mask o-v @ if or else invert and then   \ a new
-  swap ! ;
+: oled! ( x y v -- )      \ set/clear pixel in fb (no flush); byte access: fb is
+  o-v ! o-y ! o-x !       \ byte-packed and @/! fault on unaligned addresses
+  oled-addr
+  dup c@ oled-mask o-v @ if or else invert and then   \ a new
+  swap c! ;
 : oled@ ( x y -- v )      \ -1 if pixel set, else 0
   o-y ! o-x !
-  oled-addr @ oled-mask and 0= 0= ;
+  oled-addr c@ oled-mask and 0= 0= ;
 : oled-clear ( -- ) oled-fb 1024 0 fill ;
 create oled-acc 0 ,
 : oled-sum ( -- n ) 0 oled-acc ! oled-fb 1024 0 do oled-fb i + c@ oled-acc @ + oled-acc ! loop oled-acc @ ;

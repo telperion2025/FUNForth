@@ -29,7 +29,7 @@ ok> 5 7 oled@ .
 ok> 65 8 8 oled-char
  ok
 ok> oled-sum .
-28 ok
+1217 ok
 ok> oled-flush
  ok
 ok> ." OLED-OK" cr
