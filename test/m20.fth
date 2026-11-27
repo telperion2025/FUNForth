@@ -19,6 +19,7 @@ t-addr h. cr
 load asm.fth
 see oled-addr
 see t-addr
+see oled!
 5 7 oled@ .
 65 8 8 oled-char
 oled-sum .
